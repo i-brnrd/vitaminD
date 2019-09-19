@@ -1,4 +1,3 @@
-#DataThief /Users/islabarnard/Desktop/vanGemert.png Tuesday 31-Oct-2017 9:42:29 PM
 211.7659	557.0138
 216.1092	463.2296
 218.5782	397.7882

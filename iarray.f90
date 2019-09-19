@@ -11,7 +11,7 @@ subroutine iarray!(xface,yface,zface,rhokap,MASK,PL_SUM)
   integer i,j,k,p,m
 
   !**** Initialize array values to be zero
-print*, 'here'
+
   do i=1,nxg+1
      xface(i)=0.
   end do

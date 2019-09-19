@@ -1,4 +1,3 @@
-#DataThief /Users/islabarnard/Desktop/vanGemert.png Tues
 280.5977	258.0253
 281.2253	258.0253
 281.853		258.0253

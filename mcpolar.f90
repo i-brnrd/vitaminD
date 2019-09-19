@@ -26,7 +26,7 @@ program mcpolar
   integer j
   integer xcell,ycell,zcell
   integer tflag, seg_flag, r_flag
-  INTEGER I,k
+  INTEGER I,k,p
 
 
   ! ummmm what now
@@ -61,7 +61,7 @@ program mcpolar
   ph_count=0
 
   !include 'parameters.txt' !MAKE ANOTE OF WHAT THIS INCLUDES
-    nphotons = 10000000
+    nphotons = 100000000
     xmax=0.025
     ymax=0.025
     zmax=0.02
@@ -74,6 +74,8 @@ program mcpolar
     pc=0.
     sc=1.
 
+   print*, nphotons
+
 
 ! have a params file for optical properties with the number of layers
 
@@ -81,6 +83,8 @@ program mcpolar
 
 !!! so each layer has a filename and a set of properties
   !****Initialise action spectra for the optical properties
+
+
  if (nwl.gt.1) then
      !Stratum Corneum
      fname='./spectra/sc_abs_2.txt' !epi_as.txt'
@@ -122,9 +126,10 @@ program mcpolar
         diff=1.d0
         !lum=50.1/(100.**2)
         !fname='./spectra/solar_spec.txt'
-        !fname='./spectra/bb_uva.csv'
+        fname='./spectra/bb_uva.csv'
         !fname='./spectra/mh_uva1.csv'
-        fname='./spectra/nb_uvb.csv'
+        !fname='./spectra/nb_uvb.csv'
+
         !fname='./spectra/f_uva1.csv'
 
      call load_spec(fname,sz,input_spec)
@@ -185,7 +190,7 @@ program mcpolar
      lumin(1)=1.d0
      print *, lum, l
      print*, 'diffuse fraction', diff
-     !print*,'Total Luminosity:',Lum
+     !print*,'Total Luminolssity:',Lum
      call random_seed()
      g=0.9
      wl=630.d0
@@ -202,22 +207,34 @@ program mcpolar
     call iarray
     call gridset(xmax,ymax,zmax,kappa)
 
+
+    ! try to writeout gridmasks?
+      ! just call density
+
+
+
+
+
+
+
+
+
     print*,'layer 2 cell count',lcount(2),'layer 3 cell count',lcount(3)
     !print*, lcount
 
 
-                       wl= 315.d0
+                      ! wl= 315.d0
 
-                call op_props(wl,u_a,u_s,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
-                      print*, wl,u_a(1),u_a(2)
-                      print*, wl,u_s(1),u_s(2)
-                      wl=365.d0
-              call op_props(wl,u_a,u_s,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
-                      print*, wl,u_a(1),u_a(2)
-                      print*, wl,u_s(1),u_s(2)
-                        stop
+              !  call op_props(wl,u_a,u_s,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
+                !      print*, wl,u_a(1),u_a(2)
+                !      print*, wl,u_s(1),u_s(2)
+                !      wl=365.d0
+              !call op_props(wl,u_a,u_s,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
+                !      print*, wl,u_a(1),u_a(2)
+                !      print*, wl,u_s(1),u_s(2)
 
 
+     print*, 'here'
 
      !*****Set small distance for use in optical depth integration routines
      !*****for roundoff effects when crossing cell walls
@@ -237,7 +254,7 @@ program mcpolar
              fi,fq,fu,fv,xmax,ymax,zmax,twopi,xcell,ycell,zcell,iseed,L,&
              C,DELTA,WL,diff,d_flag)
 
-             ns=1.39-((wl-279)*0.0001)
+             !ns=1.39-((wl-279)*0.0001)
 
         if (d_flag.eq.1) then  !if diffuse photon, check fresnel
            !direct photons ~2% misdiagnosed as diffuse ...
@@ -264,6 +281,11 @@ program mcpolar
 
 ! obtain all the optical properties for the photon
         call op_props(wl,u_a,u_s,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
+        !do i=1,nlayer
+        !  u_a(i)=0.23
+        !  u_s(i)=(21.)/(1.-g)
+      ! enddo
+
         dnaval=u_a(4)/0.0185       ! dnaval : what is this?
 !!$     !Jaques Verification :PUT THIS IN A SUBROUTINE
 
@@ -284,7 +306,7 @@ program mcpolar
         tflag=0
         seg_flag=0
         do while(tflag.eq.0)
-           albedo=0.0
+          albedo=0.d0
            do i =1,nlayer
               albedo=albedo+u_s(i)/(u_s(i)+u_a(i))*MASK(xcell,ycell,zcell,i)
            enddo
@@ -314,7 +336,7 @@ program mcpolar
 
      end do ! end loop over nph photons
 
-     print*, 'total number scatterings',NSCATT, 'per packet', NSCATT/nphotons
+     print*, 'total number scatterings',NSCATT, 'per packet', real(NSCATT)/real(nphotons)
 
      !--------------------------------------------------------------------------------
      !     CONVERT PATH LENGTH COUNTER(S) INTO PATH LENGTH ESIMATORS
@@ -323,20 +345,12 @@ program mcpolar
      print*,'photon count', ph_count, nphotons, ph_count/nphotons
 
 
-
-         open(10, file='plsum_test.dat', status='replace', form='unformatted')
-          write(10) PL_SUM
-          close(10)
-
-               open(11, file='esum_test.dat', status='replace', form='unformatted')
-                write(11) E_SUM
-                close(11)
+     CALL PL_ESTIMATORS(ph_count,nphotons,XMAX,YMAX,ZMAX,l,lum,lumin,fname)
 
 
-     CALL PL_ESTIMATORS(ph_count,nphotons,XMAX,YMAX,ZMAX,l,lum,lumin)
      print*,'Average number of scatterings = ',(nscatt/nphotons)
 
-     stop
+
 
 
 
