@@ -17,10 +17,10 @@ program mcpolar
 
   !input params but explicitley filled up by spectra (so like filled up variables)
   !isla that is a variable you plum
-  !change fname, fname2....argh....
   real*8 incident_spec_irr(nwl)
   real*8 tot_irr
-  real*8 :: c(nwl)
+  real*8 :: cdf(nwl)
+
   real*8, dimension(:,:), allocatable :: epi_s,sc_s,stratc,epi,eumel,phmel,dna,ohb,dhb !Action Spectra
 
   character*30 fname,fname2, filename
@@ -31,13 +31,10 @@ program mcpolar
   !prefer i_wl for the waveengths
   integer i_wl
 
-  real*8,dimension(nlayer,nwl):: u_s_test,u_a_test
-  real*8:: g_skin_test(nwl)
-  real*8 :: spec(nwl)
 ! not cecked not sorted.
   real*8 hgg,g2  !Henyey Greenstein phase function variables
   real*8 delta
-  real*8 U_S(nlayer),U_A(nlayer),g
+  real*8 u_s_old(nlayer),u_a_old(nlayer),g
   real*8 ns ! refractive index of skin
 
  ! (loop) indices, counters and seeds & FLAGS: SET FLAGS TO 0???
@@ -71,7 +68,8 @@ program mcpolar
   print*, 'sim in',nlayer, ' layers'
   print*, 'using photons', nphotons
 
-    call iarray !Initialise the arrays shared by the modules to 0
+  call iarray !Initialise the arrays shared by the modules to 0
+
   ! Initialise counter :why? what is this and where is it used? withn MCRT, and within PL counters
     pkt_count=0
   !Skin parameters/ Optical Properties parameters/ Tissue parameters
@@ -89,31 +87,19 @@ program mcpolar
 print*, wl_start
 do i=1,nwl
   l(i)= wl_start + real(i) -1.
-  print*, l(i)
 enddo
 
  if (nwl.gt.1) then
    include 'include_old_op_props.txt'
   !**Initialise Spectra**
     call random_seed()
-
-!Check sum, luminosity, and CDF all work ok. Lumin, lum, stupid names. integrated_lum useful? Idk
-!only actually USE 'lum' as in total luminosity much much later (pl estimators) AND i include
-!that once w ehave got the CDF I o't need lumin
-! certainly don't need so many repeats fo the same dataset.
-!what wsa it- incident_irradiance? lamp? source_irradiance? source_spec_irr?
+!Check sum, luminosity, and CDF all work ok.
     call load_spec2(fname_incident_irradiation,incident_spec_irr,1.d0)
-    call get_cdf(c,l,incident_spec_irr,nwl)
+    call get_cdf(cdf,l,incident_spec_irr,nwl)
     tot_irr=sum(incident_spec_irr)
     print*,'Incident spectral irradiance loaded from ', fname_incident_irradiation
     print*,'Total irradiance:',tot_irr
     print*,'Diffuse Fraction',diff
-
-    !    now can do
-
-
-
-!leave this point when sum, lum, diff are loaded in ok and results the SAME USING THE NEW SPECTRUM
 
   !JAQUES VERIFICATION: DEFO into SUBROUTINE
    else
@@ -130,28 +116,16 @@ enddo
      g=0.9
      wl=630.d0
    do i=1,nlayer
-     u_a(i)=0.23
-     u_s(i)=(21.)/(1.-g)
+     u_a_old(i)=0.23
+     u_s_old(i)=(21.)/(1.-g)
   enddo
 
  endif
-
-
-! I ARRAY Should set all arrays in all modules to zero maybe; anddo it a bit more elegantly??
-!
-
-    do i=1,nwl
-         l(i)=280.+real(i) -1.
-    enddo
-
-        !ONCE THIS IS FIXED: shove the other stuff into a text file and leave as 'include . txt'; the other optical properties loading up; so that the optical prperties lookup still works ok
-        !then we need to make the BIG change to the code regarding intro: nex committ will be pre adoption of hte packet mod/ object/
-    call op_prop_set(u_a_test,u_s_test,g_skin_test)
+    call op_prop_set(u_a,u_s,g_skin)
 
     print*,'layer 2 cell count',lcount(2),'layer 3 cell count',lcount(3)
 !---------------------------------------------------------------------------------------------------------------
-
-
+!MCRT
 !-------------------------------------------------------------------------------------------------------------------------
 
      !*****Set small distance for use in optical depth integration routines
@@ -169,7 +143,7 @@ enddo
         !*****Release photon from point source *******************************
         call sourceph(xp,yp,zp,nxp,nyp,nzp,sint,cost,sinp,cosp,phi,&
              fi,fq,fu,fv,xmax,ymax,zmax,twopi,xcell,ycell,zcell,iseed,L,&
-             C,DELTA,WL,diff,d_flag)
+             cdf,DELTA,WL,diff,d_flag)
 
              !ns=1.39-((wl-279)*0.0001)
 
@@ -197,13 +171,13 @@ enddo
         n_phot_wl(b_wl)= n_phot_wl(b_wl) + 1
 
 ! obtain all the optical properties for the photon
-        call op_props(wl,u_a,u_s,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
+        call op_props(wl,u_a_old,u_s_old,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
         !do i=1,nlayer
-        !  u_a(i)=0.23
-        !  u_s(i)=(21.)/(1.-g)
+        !  u_a_old(i)=0.23
+        !  u_s_old(i)=(21.)/(1.-g)
       ! enddo
 
-        dnaval=u_a(4)/0.0185       ! dnaval : what is this?
+        dnaval=u_a_old(4)/0.0185       ! dnaval : what is this?
 !!$     !Jaques Verification :PUT THIS IN A SUBROUTINE
 
         hgg=g
@@ -212,7 +186,7 @@ enddo
         !******Find FIRST scattering location
        ! if((xcell.lt.1).or.(ycell.lt.1).or.(zcell.lt.1)) EXIT
         call tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
-             xcell,ycell,zcell,tflag,iseed,delta,u_s,u_a,b_wl,e,seg_flag,dnaval)
+             xcell,ycell,zcell,tflag,iseed,delta,u_s_old,u_a_old,b_wl,e,seg_flag,dnaval)
 
 
 
@@ -225,7 +199,7 @@ enddo
         do while(tflag.eq.0)
           albedo=0.d0
            do i =1,nlayer
-              albedo=albedo+u_s(i)/(u_s(i)+u_a(i))*MASK(xcell,ycell,zcell,i)
+              albedo=albedo+u_s_old(i)/(u_s_old(i)+u_a_old(i))*MASK(xcell,ycell,zcell,i)
            enddo
            call random_number(ran)
            if(ran.lt.albedo) then
@@ -244,7 +218,7 @@ enddo
            !************Find next scattering location
             !if((xcell.lt.1).or.(ycell.lt.1).or.(zcell.lt.1)) EXIT
            call tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
-                xcell,ycell,zcell,tflag,iseed,delta,u_s,u_a,b_wl,e,seg_flag,dnaval)
+                xcell,ycell,zcell,tflag,iseed,delta,u_s_old,u_a_old,b_wl,e,seg_flag,dnaval)
            !print*,xcell,ycell,zcell
            if (seg_flag.eq.1) EXIT
         end do
@@ -262,7 +236,7 @@ enddo
      print*,'photon count', pkt_count, nphotons, pkt_count/nphotons
 
 
-     CALL PL_ESTIMATORS(pkt_count,nphotons,XMAX,YMAX,ZMAX,l,tot_irr,incident_spec_irr,fname)
+     CALL PL_ESTIMATORS(pkt_count,nphotons,XMAX,YMAX,ZMAX,l,tot_irr,incident_spec_irr)
 
 
      print*,'Average number of scatterings = ',(scatter_count/nphotons)

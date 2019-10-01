@@ -4,7 +4,7 @@ module pl_estimators_mod
 contains
 
 !--------------------------------------------------------------------------------
-  SUBROUTINE PL_ESTIMATORS(ph_count,nphotons,XMAX,YMAX,ZMAX,wls,L,lumin,fname)
+  SUBROUTINE PL_ESTIMATORS(ph_count,nphotons,XMAX,YMAX,ZMAX,wls,L,lumin)
     use packet_mod, only: n_phot_wl
     use grid_mod
     implicit none
@@ -32,13 +32,13 @@ contains
     real*8:: e_tot, e_uva
     !Source Luminosity & Illumination Area
 
-    character*30 fname
+
     print*, nxg,nyg,nzg
 
 
     print*, l
 
-    print*,fname
+
 
     print*, '****'
     !print*, lumin

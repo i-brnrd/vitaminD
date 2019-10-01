@@ -13,4 +13,8 @@ module packet_mod
   integer :: lcount(nlayer)
 
 
+  real*8,dimension(nlayer,nwl):: u_s,u_a
+  real*8:: g_skin(nwl),n_skin(nwl)
+
+
 end module packet_mod

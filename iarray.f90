@@ -24,6 +24,13 @@ subroutine iarray
 
 
 
+  u_s=0.
+  u_a=0.
+  g_skin=0.
+  n_skin=0. 
+
+
+
   return
 end subroutine iarray
 end module iarray_mod
