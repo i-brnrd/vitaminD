@@ -2,6 +2,7 @@ module packet_mod
   implicit none
   save
   !contains
+  real*8, parameter :: wl_start=280.d0
   integer, parameter :: nwl=121
   integer, parameter :: nlayer=5
 

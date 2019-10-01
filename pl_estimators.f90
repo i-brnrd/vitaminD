@@ -5,7 +5,7 @@ contains
 
 !--------------------------------------------------------------------------------
   SUBROUTINE PL_ESTIMATORS(ph_count,nphotons,XMAX,YMAX,ZMAX,wls,L,lumin,fname)
-
+    use packet_mod, only: n_phot_wl
     use grid_mod
     implicit none
 
@@ -121,6 +121,7 @@ contains
     open(10,file='./plots/fluence_250um.dat',status='replace')
     do m=1,121
       write(10,*) wls(m),fluence_depth(m)
+
     end do
 
     open(10,file='./plots/fluence_300um.dat',status='replace')
@@ -144,10 +145,12 @@ contains
       enddo
       depth_val(k)=depth_val(k)/(nxg*nyg)
       write(10,*) (real(nzg-k)*(2.d0*zmax/real(nzg)))/(1.E-4), depth_val(k)/L_sum
-      ! print*, (real(nzg-k)*(2.d0*zmax/real(nzg)))/(1.E-4), depth_val(k)/L_sum
+      print*, (real(nzg-k)*(2.d0*zmax/real(nzg)))/(1.E-4), depth_val(k)/L_sum
     enddo
 
     close(10)
+
+    stop
 
 
     !!!!!!!!!!!!!!!!!!!!!

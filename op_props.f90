@@ -4,6 +4,7 @@ module op_props_mod
 contains
 
   subroutine op_props(wl,u_a,u_s,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
+    use packet_mod
     use grid_mod
     use search_bisec_mod
     use interpolate_mod
@@ -75,10 +76,15 @@ contains
     v_b=0.02   !blood volume only 2%?!?really?
     S02=0.75
     call interpolate(wl,ohb,e_ohb)
+
     call interpolate(wl,dhb,e_dhb)
+
     e_ohb=(e_ohb/66500.)*150.
+
     e_dhb=(e_dhb/66500.)*150.
+
     e_hgb=e_ohb*S02+e_dhb*(1.-s02)
+
     e_hgb=e_hgb*lg10
 
     !ASSIGN PROPERTIES

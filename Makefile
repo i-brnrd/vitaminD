@@ -16,7 +16,7 @@ objects = packet.o\
 	interpolate.o\
 	load_spec.o\
 	load_spec2.o\
-	cdf.o\
+	get_cdf.o\
 	op_prop_set.o\
 	op_props.o\
 	iarray.o\

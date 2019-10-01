@@ -1,194 +1,129 @@
-
 !************************************************************
 program mcpolar
   include 'modules_full_list.txt'
   implicit none
-
-  include 'photon.txt'
+  include 'photon.txt'  !why !why !why
 
   !*****Parameter declarations ****************************************
-  ! known and understood
+  !****! known and understood
+  !input params file will include IN SOME WAY
   integer nphotons   !number of photon packets sent into simulation
-  real*8 hgg,g2  !Henyey Greenstein phase function variables
-  real*8 delta
   real*8 xmax,ymax,zmax
-  real*8,parameter :: pi = 4.*atan(1.)
+  real*8 diff !diffuse fractions of incident light
+  character*30 :: fname_incident_irradiation
+  real*8, parameter :: pi = 4.*atan(1.)
   real*8, parameter:: twopi=2.*pi
   real*8, parameter:: fourpi=4.*pi
+
+  !input params but explicitley filled up by spectra (so like filled up variables)
+  !isla that is a variable you plum
+  !change fname, fname2....argh....
+  real*8 incident_spec_irr(nwl)
+  real*8 tot_irr
+  real*8 :: c(nwl)
+  real*8, dimension(:,:), allocatable :: epi_s,sc_s,stratc,epi,eumel,phmel,dna,ohb,dhb !Action Spectra
+
+  character*30 fname,fname2, filename
+
+  integer pkt_count,scatter_count   !Counts packets that actually travel through medium (not reflected)
+
+  !verbose countin integers
+  !prefer i_wl for the waveengths
+  integer i_wl
+
+  real*8,dimension(nlayer,nwl):: u_s_test,u_a_test
+  real*8:: g_skin_test(nwl)
+  real*8 :: spec(nwl)
+! not cecked not sorted.
+  real*8 hgg,g2  !Henyey Greenstein phase function variables
+  real*8 delta
   real*8 U_S(nlayer),U_A(nlayer),g
   real*8 ns ! refractive index of skin
-  character*30 fname,fname2
-
 
  ! (loop) indices, counters and seeds & FLAGS: SET FLAGS TO 0???
-  real*8 nscatt
   integer iseed
   integer j
   integer xcell,ycell,zcell
   integer tflag, seg_flag, r_flag
   INTEGER I,k,p
-
-
-  ! ummmm what now
+  integer d_flag
+  integer sz
+  integer b_wl
+  !*****! ummmm what now
   real*8 kappa,albedo,pl,pc,sc
   real*8 e
-  integer sz
-  integer ph_count, d_flag
-  real*8 diff !diffuse fractions of incident light
-  integer b_wl
+
   real*8 WL
   real*8 dnaval
-  real*8 lumin(nwl), lum
-  real*8 :: l(nwl), c(nwl)
   real*8 ran
   integer  A,B
   integer CASE
   real*8 :: tot(2),uva(2)
-  real*8, allocatable :: input_spec(:,:) !input spectrum
-  real*8, dimension(:,:), allocatable :: epi_s,sc_s,stratc,epi,eumel,phmel,dna,ohb,dhb !Action Spectra
-  real*8, allocatable :: dummy(:,:) !dummy allocatable spectrum
 
-  real*8,allocatable:: ref_spec(:,:)
-  real*8, allocatable :: trans_spec(:,:)
+  print*,'**********************'
+  print*,'Simulation of MC-UVRT through upper layers of skin'
 
-  real*8 :: sum
+  include 'parameters.txt' !MAKE ANOTE OF WHAT THIS INCLUDES !JAQUES VERIFICATION ON OFF TRUE FALSE MAYBE
+  diff=1.d0
+  fname_incident_irradiation='./spectra/bb_uva.csv'
 
-  real*8 :: spectrum(2,nwl)
+  print*, 'model size(cm)', xmax,ymax,zmax
+  print*, 'sim in',nlayer, ' layers'
+  print*, 'using photons', nphotons
 
-  real*8 :: interpol
-
-  ! Initialise Variables
-  ph_count=0
-
-  !include 'parameters.txt' !MAKE ANOTE OF WHAT THIS INCLUDES
-    nphotons = 100000000
-    xmax=0.025
-    ymax=0.025
-    zmax=0.02
-     print*, xmax,ymax,zmax
+    call iarray !Initialise the arrays shared by the modules to 0
+  ! Initialise counter :why? what is this and where is it used? withn MCRT, and within PL counters
+    pkt_count=0
   !Skin parameters/ Optical Properties parameters/ Tissue parameters
-    ns=1.38
+    ns=1.38   !CHECK THIS i think its in tauint2: it is, what a mess. Thing to do: hunt it down
     !WHAT ARE THESE FFS
-    kappa=1.
+    kappa=1.  !GET RID OF AS I DON@T USE IT
     pl=0.
     pc=0.
     sc=1.
 
-   print*, nphotons
-
-
-! have a params file for optical properties with the number of layers
-
-  print*,'Simulation of MC-UVRT through upper layers of skin stratified into', nlayer, ' layer/s'
-
-!!! so each layer has a filename and a set of properties
-  !****Initialise action spectra for the optical properties
-
+!INITIALISE GRID
+    call gridset(xmax,ymax,zmax,kappa)
+!INITIALISE PACKETS OPTICAL PROPERTIES :
+!everything relies on the wavelengths now being these, eeek.
+print*, wl_start
+do i=1,nwl
+  l(i)= wl_start + real(i) -1.
+  print*, l(i)
+enddo
 
  if (nwl.gt.1) then
-     !Stratum Corneum
-     fname='./spectra/sc_abs_2.txt' !epi_as.txt'
-     call load_spec(fname,sz,stratc)
-     fname='./spectra/sc_scatt_2.txt' !epi_as.txt'fname
-     call load_spec(fname,sz,sc_s)
-     stratc(2,:)=stratc(2,:)*10.
-     sc_s(2,:)=sc_s(2,:)*10.
-     !EPIDERMIS
-     fname='./spectra/epi_abs_2.txt'
-     call load_spec(fname,sz,epi)
-     fname='./spectra/epi_scatt_2.txt'
-     call  load_spec(fname,sz,epi_s)
-     epi(2,:)=epi(2,:)*10.  !datasets are per mm, need per cm
-     epi_s(2,:)=epi_s(2,:)*10. !datasets are per mm, need per cm
-     !Melanin
-     fname='./spectra/eumel_as.txt'
-     call load_spec(fname,sz,eumel)
-     fname='./spectra/phmel_as.txt'
-     call load_spec(fname,sz,phmel)
-     !DNA
-     !fname='./spectra/dna2.txt' !out by 1000 (stupid matlab)
-     fname='./spectra/b924712b-f1.txt' !out by 1000 (stupid matlab)
-      call load_spec(fname,sz,dna)
-      !dna(2,:)=dna(2,:)
-     !Heamoblobin
-     fname='./spectra/ohb_as.txt'
-     call load_spec(fname,sz,ohb)
-     fname='./spectra/dhb_as.txt'
-     call load_spec(fname,sz,dhb)
-
+   include 'include_old_op_props.txt'
   !**Initialise Spectra**
+    call random_seed()
 
-     do i=1,nwl
-       l(i)=280.+real(i) -1.
-     enddo
+!Check sum, luminosity, and CDF all work ok. Lumin, lum, stupid names. integrated_lum useful? Idk
+!only actually USE 'lum' as in total luminosity much much later (pl estimators) AND i include
+!that once w ehave got the CDF I o't need lumin
+! certainly don't need so many repeats fo the same dataset.
+!what wsa it- incident_irradiance? lamp? source_irradiance? source_spec_irr?
+    call load_spec2(fname_incident_irradiation,incident_spec_irr,1.d0)
+    call get_cdf(c,l,incident_spec_irr,nwl)
+    tot_irr=sum(incident_spec_irr)
+    print*,'Incident spectral irradiance loaded from ', fname_incident_irradiation
+    print*,'Total irradiance:',tot_irr
+    print*,'Diffuse Fraction',diff
 
-        call random_seed()
-        diff=1.d0
-        !lum=50.1/(100.**2)
-        !fname='./spectra/solar_spec.txt'
-        fname='./spectra/bb_uva.csv'
-        !fname='./spectra/mh_uva1.csv'
-        !fname='./spectra/nb_uvb.csv'
-
-        !fname='./spectra/f_uva1.csv'
-
-     call load_spec(fname,sz,input_spec)
-
-
-!interpolating input spectrum via what method?
-
-     sum =0.0
-      do i=1,nwl
-       call interpolate(l(i),input_spec,interpol)
-        if (interpol.lt.0.00) then
-          interpol=0.00
-        end if
-        spectrum(1,i)=l(i)
-        spectrum(2,i)=interpol
-        sum = sum + interpol
-        enddo
-      call cdf(c,spectrum,nwl)
-
-      lum=sum
-      lumin=spectrum(2,:)
-
-
-          print*,'spectra loaded'
-          print*,'input spectrum:', fname
-          print*,'Total Luminosity:',Lum
-          print*,'Diffuse Fraction',diff
-
-          !**VERIFICATION
-          !Verify Optical Properties
-
-        !  do i=1,nwl
-          !  print*,wl
-          !   wl=l(i)
-          !   call op_props(wl,u_a,u_s,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
-          !!   write(12,*) wl,u_a(1),u_a(2),u_a(3),u_a(4),u_a(5)
-          !   write(13,*) wl,u_s(1),u_s(2),u_s(5), g
-
-        !  enddo
-        !  close(12)
-        !  close(13)
-
-
-        !  enddo
-        !  close(12)
-        !  close(13)
+    !    now can do
 
 
 
+!leave this point when sum, lum, diff are loaded in ok and results the SAME USING THE NEW SPECTRUM
 
-
+  !JAQUES VERIFICATION: DEFO into SUBROUTINE
    else
 
      print*, 'Jaques verification mode on nwls:', nwl
      Diff = 0.d0
-     lum=1.d0
+     tot_irr=1.d0
      l(1)= 630.d0
-     lumin(1)=1.d0
-     print *, lum, l
+     incident_spec_irr(1)=1.d0
+     print *, tot_irr, l
      print*, 'diffuse fraction', diff
      !print*,'Total Luminolssity:',Lum
      call random_seed()
@@ -199,52 +134,34 @@ program mcpolar
      u_s(i)=(21.)/(1.-g)
   enddo
 
-
  endif
 
 
+! I ARRAY Should set all arrays in all modules to zero maybe; anddo it a bit more elegantly??
+!
 
-    call iarray
-    call gridset(xmax,ymax,zmax,kappa)
+    do i=1,nwl
+         l(i)=280.+real(i) -1.
+    enddo
 
-
-    ! try to writeout gridmasks?
-      ! just call density
-
-
-
-
-
-
-
-
+        !ONCE THIS IS FIXED: shove the other stuff into a text file and leave as 'include . txt'; the other optical properties loading up; so that the optical prperties lookup still works ok
+        !then we need to make the BIG change to the code regarding intro: nex committ will be pre adoption of hte packet mod/ object/
+    call op_prop_set(u_a_test,u_s_test,g_skin_test)
 
     print*,'layer 2 cell count',lcount(2),'layer 3 cell count',lcount(3)
-    !print*, lcount
+!---------------------------------------------------------------------------------------------------------------
 
 
-                      ! wl= 315.d0
-
-              !  call op_props(wl,u_a,u_s,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
-                !      print*, wl,u_a(1),u_a(2)
-                !      print*, wl,u_s(1),u_s(2)
-                !      wl=365.d0
-              !call op_props(wl,u_a,u_s,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
-                !      print*, wl,u_a(1),u_a(2)
-                !      print*, wl,u_s(1),u_s(2)
-
-
-     print*, 'here'
+!-------------------------------------------------------------------------------------------------------------------------
 
      !*****Set small distance for use in optical depth integration routines
      !*****for roundoff effects when crossing cell walls
      delta=1.e-6*(2.*zmax/nzg)
 !!$
      !**** Loop over nph photons from each source *************************
-     nscatt=0
+     scatter_count=0
 
      do j=1,nphotons
-
         if(mod(j,100000).eq.0)then
            print *, j,' scattered photons completed'
         end if
@@ -264,7 +181,7 @@ program mcpolar
            endif
         endif
 
-        ph_count=ph_count+1
+        pkt_count=pkt_count+1
 
         seg_flag=0
         e=1./wl
@@ -317,7 +234,7 @@ program mcpolar
 
               call stokes(nxp,nyp,nzp,sint,cost,sinp,cosp,phi,&
                    fi,fq,fu,fv,pl,pc,sc,hgg,g2,pi,twopi,iseed)
-              nscatt=nscatt+1
+              scatter_count=scatter_count+1
 
            else
 
@@ -336,19 +253,19 @@ program mcpolar
 
      end do ! end loop over nph photons
 
-     print*, 'total number scatterings',NSCATT, 'per packet', real(NSCATT)/real(nphotons)
+     print*, 'total number scatterings',scatter_count, 'per packet', real(scatter_count)/real(nphotons)
 
      !--------------------------------------------------------------------------------
      !     CONVERT PATH LENGTH COUNTER(S) INTO PATH LENGTH ESIMATORS
 
 
-     print*,'photon count', ph_count, nphotons, ph_count/nphotons
+     print*,'photon count', pkt_count, nphotons, pkt_count/nphotons
 
 
-     CALL PL_ESTIMATORS(ph_count,nphotons,XMAX,YMAX,ZMAX,l,lum,lumin,fname)
+     CALL PL_ESTIMATORS(pkt_count,nphotons,XMAX,YMAX,ZMAX,l,tot_irr,incident_spec_irr,fname)
 
 
-     print*,'Average number of scatterings = ',(nscatt/nphotons)
+     print*,'Average number of scatterings = ',(scatter_count/nphotons)
 
 
 

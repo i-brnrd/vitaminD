@@ -201,7 +201,7 @@ subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
         zcur=zcur+d1*nzp
 
         PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+D1
-        E_SUM(b_wl,CI,CJ,CK)=E_sum(b_wl,ci,cj,ck)+(D1*ea)
+        !E_SUM(b_wl,CI,CJ,CK)=E_sum(b_wl,ci,cj,ck)+(D1*ea)
 
 
         !***************Linear Grid ************************
@@ -221,7 +221,7 @@ subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
            if ((dx.lt.dy).AND.(dx.lt.dz)) then
 
               PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+DCELL
-              E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+(dcell*ea)
+            !E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+(dcell*ea)
 
               xcur=xcur+dcell*nxp
               ycur=ycur+dcell*nyp
@@ -244,7 +244,7 @@ subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
               !     IF GOING TO HIT YEDGE, LOOP
 
               PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+DCELL
-              E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+(dcell*ea)
+            !  E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+(dcell*ea)
 
               xcur=xcur+dcell*nxp
               ycur=ycur+dcell*nyp
@@ -272,7 +272,7 @@ subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
                  IF (ACOS(CT1).GT.CA) THEN !TIR
 
                     PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+DCELL
-                    E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+(dcell*ea)
+                    !E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+(dcell*ea)
 
                     xcur=xcur+dcell*nxp
                     ycur=ycur+dcell*nyp
@@ -304,7 +304,7 @@ subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
                     IF (RAN.LT.RF) THEN !REFLECT PHOTON
 
                        PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+DCELL
-                       E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+dcell*ea
+                       !E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+dcell*ea
                        xcur=xcur+dcell*nxp
                        ycur=ycur+dcell*nyp
                        zcur=zcur+dcell*nzp
@@ -332,7 +332,7 @@ subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
         else
 
            PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+DCELL
-           E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+dcell*ea
+           !E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+dcell*ea
 
            xcur=xcur+dcell*nxp
            ycur=ycur+dcell*nyp
