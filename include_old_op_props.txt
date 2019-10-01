@@ -1,0 +1,31 @@
+!Stratum Corneum
+fname='./spectra/sc_abs_2.txt' !epi_as.txt'
+call load_spec(fname,sz,stratc)
+fname='./spectra/sc_scatt_2.txt' !epi_as.txt'fname
+call load_spec(fname,sz,sc_s)
+stratc(2,:)=stratc(2,:)*10.
+sc_s(2,:)=sc_s(2,:)*10.
+!EPIDERMIS
+fname='./spectra/epi_abs_2.txt'
+call load_spec(fname,sz,epi)
+fname='./spectra/epi_scatt_2.txt'
+call  load_spec(fname,sz,epi_s)
+epi(2,:)=epi(2,:)*10.  !datasets are per mm, need per cm
+epi_s(2,:)=epi_s(2,:)*10. !datasets are per mm, need per cm
+!Melanin
+fname='./spectra/eumel_as.txt'
+call load_spec(fname,sz,eumel)
+fname='./spectra/phmel_as.txt'
+call load_spec(fname,sz,phmel)
+!DNA
+!fname='./spectra/dna2.txt' !out by 1000 (stupid matlab)
+fname='./spectra/b924712b-f1.txt' !out by 1000 (stupid matlab)
+ call load_spec(fname,sz,dna)
+ !dna(2,:)=dna(2,:)
+!Heamoblobin
+fname='./spectra/ohb_as.txt'
+call load_spec(fname,sz,ohb)
+fname='./spectra/dhb_as.txt'
+call load_spec(fname,sz,dhb)
+
+!**Initialise Spectra**

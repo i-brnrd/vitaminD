@@ -4,6 +4,7 @@ implicit none
 contains
 
 subroutine iarray!(xface,yface,zface,rhokap,MASK,PL_SUM)
+  use packet_mod
   use grid_mod
   implicit none
 
@@ -41,6 +42,7 @@ subroutine iarray!(xface,yface,zface,rhokap,MASK,PL_SUM)
 
   do m=1,nwl
      n_phot_wl(m)=0
+     l(m)=0.
   enddo
   do i=1,nlayer
      lcount(i)=0

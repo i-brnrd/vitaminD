@@ -5,7 +5,7 @@ contains
 
 
   subroutine gridset(xmax,ymax,zmax,kappa)!(xface,yface,zface,MASK,xmax,ymax,zmax,kappa)
-
+    use packet_mod
     use grid_mod
 
     implicit none

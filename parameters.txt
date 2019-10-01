@@ -1,0 +1,14 @@
+!parameters.txt
+!contains
+
+
+
+
+
+!mcrt
+nphotons = 100000
+
+!geometry
+xmax=0.025
+ymax=0.025
+zmax=0.02

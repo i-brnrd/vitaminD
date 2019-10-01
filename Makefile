@@ -8,13 +8,16 @@
 #	#gfortran hello_isla.f90
 #FFLAGS = -ffpe-trap=invalid,zero -g -fcheck=all -fbacktrace
 
-objects = grid.o\
+objects = packet.o\
+	grid.o\
 	search_bisec.o\
 	get_dim.o\
 	load.o\
-	load_spec.o\
-	cdf.o\
 	interpolate.o\
+	load_spec.o\
+	load_spec2.o\
+	cdf.o\
+	op_prop_set.o\
 	op_props.o\
 	iarray.o\
 	density.o\
