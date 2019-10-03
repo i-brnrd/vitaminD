@@ -20,16 +20,12 @@ program mcpolar
   real*8 incident_spec_irr(nwl)
   real*8 tot_irr
   real*8 :: cdf(nwl)
-
-  real*8, dimension(:,:), allocatable :: epi_s,sc_s,stratc,epi,eumel,phmel,dna,ohb,dhb !Action Spectra
-
-  character*30 fname,fname2, filename
-
   integer pkt_count,scatter_count   !Counts packets that actually travel through medium (not reflected)
 
-  !verbose countin integers
-  !prefer i_wl for the waveengths
-  integer i_wl
+
+  !old op props variables
+  !real*8, dimension(:,:), allocatable :: epi_s,sc_s,stratc,epi,eumel,phmel,dna,ohb,dhb !Action Spectra
+  !character*30 fname
 
 ! not cecked not sorted.
   real*8 hgg,g2  !Henyey Greenstein phase function variables
@@ -82,15 +78,14 @@ program mcpolar
 
 !INITIALISE GRID
     call gridset(xmax,ymax,zmax,kappa)
-!INITIALISE PACKETS OPTICAL PROPERTIES :
-!everything relies on the wavelengths now being these, eeek.
+!INITIALISE PACKETS OPTICAL PROPERTIES
 print*, wl_start
 do i=1,nwl
   l(i)= wl_start + real(i) -1.
 enddo
 
  if (nwl.gt.1) then
-   include 'include_old_op_props.txt'
+   !include 'include_old_op_props.txt'
   !**Initialise Spectra**
     call random_seed()
 !Check sum, luminosity, and CDF all work ok.
@@ -171,15 +166,16 @@ enddo
         n_phot_wl(b_wl)= n_phot_wl(b_wl) + 1
 
 ! obtain all the optical properties for the photon
-        call op_props(wl,u_a_old,u_s_old,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
+        !call op_props(wl,u_a_old,u_s_old,g,epi,eumel,phmel,dna,ohb,dhb,stratc,epi_s,sc_s)
+        u_a_old=u_a(:,b_wl)
+        u_s_old=u_s(:,b_wl)
+        g=g_skin(b_wl)
         !do i=1,nlayer
         !  u_a_old(i)=0.23
         !  u_s_old(i)=(21.)/(1.-g)
       ! enddo
 
-        dnaval=u_a_old(4)/0.0185       ! dnaval : what is this?
-!!$     !Jaques Verification :PUT THIS IN A SUBROUTINE
-
+        dnaval=u_a_old(4)/0.0185
         hgg=g
         g2=hgg**2      ! Henyey-Greenstein parameter, hgg^2
 
