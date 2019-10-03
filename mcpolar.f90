@@ -7,7 +7,7 @@ program mcpolar
   !*****Parameter declarations ****************************************
   !input params file will include IN SOME WAY
   integer nphotons   !number of photon packets sent into simulation
-  real*8 xmax,ymax,zmax
+  real*8 xmax,ymax,zmax !this is a grid parameter
 
   real*8 diff !diffuse fractions of incident light
   character*30 :: fname_incident_irradiation
@@ -20,31 +20,27 @@ program mcpolar
   real*8 incident_spec_irr(nwl)
   real*8 tot_irr
   real*8 :: cdf(nwl)
-  integer pkt_count,scatter_count   !Counts packets that actually travel through medium (not reflected)
-  !grid property (should be set in gridset tbh)
-  real*8 delta
+
+  integer:: pkt_count,scatter_count   !Counts packets that actually travel through medium (not reflected)
+  real*8 ran
+  real*8 albedo
 
 !properties of a PACKET/ al the packets....
-  include 'photon.txt'  !why !why !why
+  !include 'photon.txt'  !why !why !why
   real*8 hgg,g2  !Henyey Greenstein phase function variables
   real*8 u_s_old(nlayer),u_a_old(nlayer),g
   real*8 ns ! refractive index of skin
   integer b_wl
+  integer xcell,ycell,zcell
 
  ! (loop) indices, counters and seeds &
- integer iseed
- integer j
- integer xcell,ycell,zcell
- INTEGER I,k,p
-
+ integer j  !
+ INTEGER I !GET RID OF THIS it needs to be placed into a sub
  !*****! ummmm what now
- real*8 kappa,albedo,pl,pc,sc
- real*8 ran
- integer  A,B
- real*8 :: tot(2),uva(2)
- !FLAGS: SET FLAGS TO 0???
- integer d_flag
+ real*8 kappa,pl,pc,sc
  integer tflag, seg_flag, r_flag
+
+ logical:: diffuse_flag
 
 
  print*,'**********************'
@@ -72,26 +68,23 @@ sc=1.
 
 !INITIALISE GRID
 call gridset(xmax,ymax,zmax,kappa)
-delta=1.e-6*(2.*zmax/nzg)  !this is a GRIDPROPERTY
-!small roundoff effect number
+
 !INITIALISE PACKETS OPTICAL PROPERTIES
-
 if (nwl.gt.1) then
-
+  call random_seed()
   !**Initialise Spectra**
   print*, wl_start
   do i=1,nwl
     l(i)= wl_start + real(i) -1.
   enddo
-  call random_seed()
+  call optical_properties_set(u_a,u_s,g_skin)
   call load_spec2(fname_incident_irradiation,incident_spec_irr,1.d0)
   call get_cdf(cdf,l,incident_spec_irr,nwl)
   tot_irr=sum(incident_spec_irr)
   print*,'Incident spectral irradiance loaded from ', fname_incident_irradiation
   print*,'Total irradiance:',tot_irr
   print*,'Diffuse Fraction',diff
-  !
-  call op_prop_set(u_a,u_s,g_skin)
+  !NOW you should be able to USE the optical properties as a module and have them filled up
 
   !JAQUES VERIFICATION: DEFO into SUBROUTINE BUT WHEN modules are wrangled.
 else
@@ -126,14 +119,11 @@ do j=1,nphotons
     end if
 
         !*****Release photon from point source *******************************
-    call sourceph(xp,yp,zp,nxp,nyp,nzp,sint,cost,sinp,cosp,phi,&
-         fi,fq,fu,fv,xmax,ymax,zmax,twopi,xcell,ycell,zcell,iseed,&
-         cdf,DELTA,diff,d_flag,b_wl)
-
+    call sourceph(xmax,ymax,zmax,twopi,xcell,ycell,zcell,&
+            cdf,diff,b_wl,diffuse_flag)
         if (nwl.eq.1) b_wl=1
 
-
-        if (d_flag.eq.1) then
+        if (diffuse_flag) then
            call reflect(1.d0,ns,cost,pi,r_flag) !fresnel reflection
            if (r_flag.eq.1) then
               CYCLE
@@ -141,24 +131,21 @@ do j=1,nphotons
         endif
 
         pkt_count=pkt_count+1 !counts actual packets reaching the medium
-
         seg_flag=0
-
         !add one to wavelength bin
         n_phot_wl(b_wl)= n_phot_wl(b_wl) + 1
-
 ! obtain all the optical properties for the photon
         u_a_old=u_a(:,b_wl)
         u_s_old=u_s(:,b_wl)
         g=g_skin(b_wl)
-
         hgg=g
         g2=hgg**2      ! Henyey-Greenstein parameter, hgg^2
 
         !******Find FIRST scattering location
        ! if((xcell.lt.1).or.(ycell.lt.1).or.(zcell.lt.1)) EXIT
+       !IMPORTANT NOTEy its arguably faster for a single opprop set to be given tp tauint2. i don't know. 
         call tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
-             xcell,ycell,zcell,tflag,iseed,delta,u_s_old,u_a_old,b_wl,seg_flag)
+             xcell,ycell,zcell,tflag,u_s(:,b_wl),u_a(:,b_wl),b_wl,seg_flag)
 
         if (seg_flag.eq.1) EXIT
         !********Photon scatters in grid until it exits (tflag=1)
@@ -173,20 +160,16 @@ do j=1,nphotons
            if(ran.lt.albedo) then
               cost=nzp
               !************Scatter photon into new direction and update Stokes parameters
-
               call stokes(nxp,nyp,nzp,sint,cost,sinp,cosp,phi,&
-                   fi,fq,fu,fv,pl,pc,sc,hgg,g2,pi,twopi,iseed)
+                   fi,fq,fu,fv,pl,pc,sc,hgg,g2,pi,twopi)
               scatter_count=scatter_count+1
-
            else
-
               EXIT
            endif
-
            !************Find next scattering location
             !if((xcell.lt.1).or.(ycell.lt.1).or.(zcell.lt.1)) EXIT
            call tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
-                xcell,ycell,zcell,tflag,iseed,delta,u_s_old,u_a_old,b_wl,seg_flag)
+                xcell,ycell,zcell,tflag,u_s_old,u_a_old,b_wl,seg_flag)
            !print*,xcell,ycell,zcell
            if (seg_flag.eq.1) EXIT
         end do

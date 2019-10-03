@@ -4,13 +4,13 @@ module tauint2_mod
 contains
 
 subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
-     xcell,ycell,zcell,tflag,iseed,delta,u_s,u_a,b_wl,seg_flag)
+     xcell,ycell,zcell,tflag,u_s,u_a,b_wl,seg_flag)
 
   use grid_mod
   implicit none
 
   integer, intent(in)::j
-  integer tflag,iseed,xcell,ycell,zcell,count,seg_flag
+  integer tflag,xcell,ycell,zcell,count,seg_flag
   real*8 xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax
   real*8 ran
   real*8 gsmax
@@ -18,7 +18,7 @@ subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
 
   integer ci,cj,ck
   real*8 tau,taurun,taucell,d,d1,dcell,xcur,ycur,zcur,dsx,dsy,dsz
-  real*8 dx,dy,dz,smax,delta
+  real*8 dx,dy,dz,smax
 
   real*8 rk, uat !rhokappa,energy_absorbed
   real*8 u_s(nlayer),u_a(nlayer)

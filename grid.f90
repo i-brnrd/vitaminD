@@ -1,5 +1,5 @@
 module grid_mod
-  use packet_mod, only:nwl,nlayer
+  use optical_properties_mod, only:nwl,nlayer
   implicit none
   save
   !contains
@@ -10,5 +10,7 @@ module grid_mod
   real*8 :: rhokap(nxg,nyg,nzg)
 
   REAL*8 :: PL_SUM(nwl,NXG,NYG,NZG)
+
+  real*8 :: delta
 
 end module grid_mod

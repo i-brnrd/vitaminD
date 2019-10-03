@@ -1,6 +1,6 @@
-use packet_mod
+use optical_properties_mod
 use grid_mod
-!use constants_mod
+use packet_mod
 use iarray_mod
 use gridset_mod
 use get_dim_mod
@@ -8,7 +8,7 @@ use load_mod
 use load_spec2_mod
 use search_bisec_mod
 use interpolate_mod
-use op_prop_set_mod
+use optical_properties_set_mod
 use source_ph_mod
 use tauint2_mod
 use reflect_mod

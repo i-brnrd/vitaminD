@@ -1,11 +1,11 @@
-module op_prop_set_mod
+module optical_properties_set_mod
   implicit none
   save
 contains
   !!!!!!N
    !!!!ns=1.39-((wl-279)*0.0001)
-  subroutine op_prop_set(u_a,u_s,g_skin)
-    use packet_mod, ONLY: nwl, nlayer,lcount,l
+  subroutine optical_properties_set(u_a,u_s,g_skin)
+    use optical_properties_mod, ONLY: nwl, nlayer,lcount,l
     use load_spec2_mod
     use search_bisec_mod
     use interpolate_mod
@@ -100,6 +100,6 @@ contains
     u_s(layer,:)=u_s_base
 
     return
-  END SUBROUTINE op_prop_set
+  END SUBROUTINE optical_properties_set
 
-end module op_prop_set_mod
+end module optical_properties_set_mod

@@ -1,20 +1,14 @@
 module packet_mod
   implicit none
   save
-  !contains
-  real*8, parameter :: wl_start=280.d0
-  integer, parameter :: nwl=121
-  integer, parameter :: nlayer=5
-
-  real*8  :: l(nwl)
-  integer :: n_phot_wl(nwl)
-  integer :: lcount(nlayer)
-
-  real*8,dimension(nlayer,nwl):: u_s,u_a
-  real*8:: g_skin(nwl),n_skin(nwl)
 
 
+  real*8 xp,yp,zp   !current position in grid
+  real*8 nxp,nyp,nzp !current direction of packet 
 
+  !HERE BE DRAGONS
+  real*8 sint,cost,sinp,cosp,phi
+  real*8 fi,fq,fu,fv
 
 
 end module packet_mod

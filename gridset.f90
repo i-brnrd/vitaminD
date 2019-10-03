@@ -5,7 +5,7 @@ contains
 
 
   subroutine gridset(xmax,ymax,zmax,kappa)!(xface,yface,zface,MASK,xmax,ymax,zmax,kappa)
-    use packet_mod
+    use optical_properties_mod
     use grid_mod
 
     implicit none
@@ -14,6 +14,9 @@ contains
     real*8 x,y,z,rho,taueq,taupole
 
     integer i,j,k,p,layer
+
+
+    delta=1.e-6*(2.*zmax/nzg) !small roundoff error number for when close to cell walls
 
     print *, 'Setting up density grid....'
 

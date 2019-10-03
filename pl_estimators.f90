@@ -5,7 +5,7 @@ contains
 
 !--------------------------------------------------------------------------------
   SUBROUTINE PL_ESTIMATORS(ph_count,nphotons,XMAX,YMAX,ZMAX,wls,L,lumin)
-    use packet_mod, only: n_phot_wl
+    use optical_properties_mod, only: n_phot_wl
     use grid_mod
     implicit none
 
@@ -85,8 +85,7 @@ contains
     enddo
 
 
-    !start path length counters
-
+    
     do m=1,nwl
       l_sum=l_sum+lumin(m)
 
