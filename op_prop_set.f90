@@ -2,7 +2,8 @@ module op_prop_set_mod
   implicit none
   save
 contains
-
+  !!!!!!N
+   !!!!ns=1.39-((wl-279)*0.0001)
   subroutine op_prop_set(u_a,u_s,g_skin)
     use packet_mod, ONLY: nwl, nlayer,lcount,l
     use load_spec2_mod

@@ -100,7 +100,7 @@ contains
         do j=1,nyg
           do k=1,nzg
             j_mean(i,j,k)=j_mean(i,j,k) + (PL_SUM(m,i,j,k))*l_norm
-            energy(i,j,k)=energy(i,j,k) + (E_SUM(m,i,j,k))*e_norm
+            !energy(i,j,k)=energy(i,j,k) + (E_SUM(m,i,j,k))*e_norm
             if (k==150) then
               fluence_depth(m)=fluence_depth(m) + (PL_SUM(m,i,j,k))*l_norm
             end if
@@ -108,7 +108,7 @@ contains
               toplayer(m)=toplayer(m)+(PL_SUM(m,i,j,k))*l_norm
             endif
             if (MASK(i,j,k,basal)==1) then
-              e_basal(m)= e_basal(m) + (E_SUM(m,i,j,k)*e_norm)
+            !  e_basal(m)= e_basal(m) + (E_SUM(m,i,j,k)*e_norm)
               f_basal(m)= f_basal(m) + PL_SUM(m,i,j,k)*l_norm
             endif
           enddo
@@ -321,7 +321,7 @@ contains
     open(12,file='energy.dat',status='replace')
 
     write(11,*) j_mean
-    write(12,*) energy
+    !write(12,*) energy
 
     close(11)
     close(12)

@@ -4,28 +4,32 @@ module source_ph_mod
 contains
 
   subroutine  sourceph(xp,yp,zp,nxp,nyp,nzp,sint,cost,sinp,cosp,phi,&
-          fi,fq,fu,fv,xmax,ymax,zmax,twopi,xcell,ycell,zcell,iseed,L,&
-          C,DELTA,WL,diff,d_flag)
+          fi,fq,fu,fv,xmax,ymax,zmax,twopi,xcell,ycell,zcell,iseed,&
+          cdf,DELTA,diff,d_flag,b_wl)
 
     use mc_sample_mod
     use grid_mod
+    use search_bisec_mod
     implicit none
 
     include 'photon.txt'
 
     integer xcell,ycell,zcell,iseed
-    real*8 xmax,ymax,zmax,twopi, DELTA ,WL
-    real*8, intent(in):: L(nwl),C(nwl)
+    real*8 xmax,ymax,zmax,twopi, DELTA
+    real*8, intent(in):: cdf(nwl)
+    integer low,up
 
     integer d_flag
     real*8 ran, theta
 
     real*8 diff
-
+    integer b_wl
     if (nwl.gt.1) then
-    call mc_sample(C,L,WL)
+      !call mc_sample(C,L,WL)
+      call random_number(ran)
+      call search_bisec(ran,cdf,low,up)
+      b_wl=low
     endif
-
     ! SET LAUNCH POSITION (**UNIFORM IRRADIANCE**)
     call random_number(ran)
     XP = (2.*ran -1.)*xmax
@@ -63,7 +67,7 @@ contains
 
     else
        d_flag=0 !d_flag =0 if photon is direct
-       cost=-1
+       cost=-1.
        sint=0.
        NXP=0.
        NYP=0.
@@ -76,7 +80,6 @@ contains
     fq=0.
     fu=0.
     fv=0.
-
     !*************** Linear Grid *************************
     xcell=int(nxg*(xp+xmax)/(2.*xmax))+1
     ycell=int(nyg*(yp+ymax)/(2.*ymax))+1
@@ -86,30 +89,3 @@ contains
     return
   end subroutine sourceph
 end module
-  !KENNY CODE ISO ORIGIN
-!!$!$$$c***** emit photon isotropically from origin
-!!$c$$$      xp=0.
-!!$c$$$      yp=0.
-!!$c$$$      zp=0.
-!!$c$$$
-!!$c$$$      cost=2.*ran2(iseed)-1.
-!!$c$$$      sint=(1.-cost*cost)
-!!$c$$$      if(sint.le.0.)then
-!!$c$$$        sint=0.
-!!$c$$$      else
-!!$c$$$        sint=sqrt(sint)
-!!$c$$$      endif
-!!$c$$$
-!!$c$$$      xp=0.
-!!$c$$$      yp=0.
-!!$c$$$      zp=0.
-!!$c$$$
-!!$c$$$      phi=twopi*ran2(iseed)
-!!$c$$$      cosp=cos(phi)
-!!$c$$$      sinp=sin(phi)
-!!$c$$$
-!!$c$$$
-!!$c$$$c***** Set photon direction cosines for direction of travel *********
-!!$c$$$      nxp=sint*cosp
-!!$c$$$      nyp=sint*sinp
-!!$c$$$      nzp=cost

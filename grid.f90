@@ -10,6 +10,5 @@ module grid_mod
   real*8 :: rhokap(nxg,nyg,nzg)
 
   REAL*8 :: PL_SUM(nwl,NXG,NYG,NZG)
-  REAL*8 :: E_SUM(nwl,NXG,NYG,NZG)
 
 end module grid_mod

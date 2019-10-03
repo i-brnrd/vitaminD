@@ -14,11 +14,9 @@ objects = packet.o\
 	get_dim.o\
 	load.o\
 	interpolate.o\
-	load_spec.o\
 	load_spec2.o\
 	get_cdf.o\
 	op_prop_set.o\
-	op_props.o\
 	iarray.o\
 	density.o\
 	gridset.o\

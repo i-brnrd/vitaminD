@@ -2,7 +2,7 @@ module mc_sample_mod
   implicit none
   save
 contains
- 
+
 
   subroutine mc_sample(C,L,WL)
     use search_bisec_mod
@@ -24,7 +24,7 @@ contains
   wl = (l(up) - l(low)) * (ran-c(low)) / (c(up)-c(low))
   wl = l(low) + wl
 
-  return 
+  return
 end subroutine mc_sample
 
-end module 
+end module

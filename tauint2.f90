@@ -4,7 +4,7 @@ module tauint2_mod
 contains
 
 subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
-     xcell,ycell,zcell,tflag,iseed,delta,u_s,u_a,b_wl,e,seg_flag,dnaval)
+     xcell,ycell,zcell,tflag,iseed,delta,u_s,u_a,b_wl,seg_flag)
 
   use grid_mod
   implicit none
@@ -14,13 +14,13 @@ subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
   real*8 xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax
   real*8 ran
   real*8 gsmax
-  real*8 dnaval
+
 
   integer ci,cj,ck
   real*8 tau,taurun,taucell,d,d1,dcell,xcur,ycur,zcur,dsx,dsy,dsz
   real*8 dx,dy,dz,smax,delta
 
-  real*8 rk, uat,ea,e !rhokappa,energy_absorbed
+  real*8 rk, uat !rhokappa,energy_absorbed
   real*8 u_s(nlayer),u_a(nlayer)
   real*8 wl
   integer  i, b_wl
@@ -175,12 +175,6 @@ subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
 
      !taucell=dcell*rhokap(ci,cj,ck)
      taucell=dcell*rk
-     ea=uat/e
-
-
-      !ea=(0.005)*dnaval/e
-     ! print*,uat
-     !print*,'tcell',taucell
 
 
      !*****if taurun+taucell>tau then scatter at distance d+d1.
@@ -201,7 +195,7 @@ subroutine tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
         zcur=zcur+d1*nzp
 
         PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+D1
-        !E_SUM(b_wl,CI,CJ,CK)=E_sum(b_wl,ci,cj,ck)+(D1*ea)
+
 
 
         !***************Linear Grid ************************
