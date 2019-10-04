@@ -13,7 +13,7 @@ subroutine tauint3(j,xp,yp,zp,nxp,nyp,nzp,&
   integer tflag,xcell,ycell,zcell,count,seg_flag
   real*8 xp,yp,zp,nxp,nyp,nzp!,xmax,ymax,zmax
   real*8 ran
-  real*8 gsmax
+  real*8 gsmax, dir_test
 
   real*8 function_test
 
@@ -34,6 +34,10 @@ subroutine tauint3(j,xp,yp,zp,nxp,nyp,nzp,&
   !**** generate random optical depth tau
   call random_number(ran)
   tau=-log(ran)
+
+
+
+  tau=1.58
 
   !**********!SETUP REFRACTIVE INDEX PARAMETERS
   NS=1.38                   !REFRACTIVE INDEX OF SKIN
@@ -66,8 +70,8 @@ subroutine tauint3(j,xp,yp,zp,nxp,nyp,nzp,&
   do
 
      !*****find distance to next x, y, and z cell walls.
-     !*****note that dx is not the x-distance, but the actual distance along
-     !*****the direction of travel to the next x-face, and likewise for dy and dz.
+    ! *****note that dx is not the x-distance, but the actual distance along
+    ! *****the direction of travel to the next x-face, and likewise for dy and dz.
 
      if(nxp.gt.0.) then
         dx=(xface(ci+1)-xcur)/nxp
@@ -123,6 +127,9 @@ subroutine tauint3(j,xp,yp,zp,nxp,nyp,nzp,&
         dz=1.e2*zmax
      endif
 
+     print*, dx,dy,dz
+     print*,dir_test(nxp,xcur,ci)
+     stop
      !this is a bit of a cheat: see screenshots in ./debug
      !*******THIS USED TO BE (dx.eq.0.)
 
@@ -367,36 +374,41 @@ end module tauint3_mod
 
 
 
-!
-! function dir_test(a,b)
-! implicit none
-!   real*8 a,b
-!   real*8 dir_test
-!
-!
-!
-!   if(nxp.gt.0.) then
-!      dx=(xface(ci+1)-xcur)/nxp
-!      if(dx.lt.delta) then
-!         xcur=xface(ci+1)
-!         ci=ci+1
-!        dx=(xface(ci+1)-xcur)/nxp
-!      endif
-!   elseif(nxp.lt.0.) then
-!      dx=(xface(ci)-xcur)/nxp
-!      if(dx.lt.delta) then
-!         xcur=xface(ci)
-!         dx=(xface(ci-1)-xcur)/nxp
-!         ci=ci-1
-!      endif
-!   elseif(nxp.eq.0.) then
-!      dx=1.e2*xmax
-!   endif
-!
-!
-!
-! return
-! end function dir_test
+
+function dir_test(nxp,xcur,ci)
+  !dx is the distace long the firection of movement to the next xface
+  !UNLESS dx < delta. if it is we just move it TO the next face.
+  !like it's already so close to the next face just move it to the next face?
+  !THIS ALSO CHANGES ci though
+  use grid_mod, ONLY: xface, delta, xmax
+ implicit none
+   real*8 dx,nxp,xcur
+   integer ci
+   real*8 dir_test
+
+
+
+   if(nxp.gt.0.) then
+      dx=(xface(ci+1)-xcur)/nxp
+      if(dx.lt.delta) then
+         xcur=xface(ci+1)
+         ci=ci+1
+        dx=(xface(ci+1)-xcur)/nxp
+      endif
+   elseif(nxp.lt.0.) then
+      dx=(xface(ci)-xcur)/nxp
+      if(dx.lt.delta) then
+         xcur=xface(ci)
+         dx=(xface(ci-1)-xcur)/nxp
+        ci=ci-1
+      endif
+  elseif(nxp.eq.0.) then
+      dx=1.e2*xmax
+   endif
+   dir_test=dx
+
+ return
+ end function dir_test
 
 
 

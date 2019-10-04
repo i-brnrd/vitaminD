@@ -80,6 +80,7 @@ if (nwl.gt.1) then
   call load_spec2(fname_incident_irradiation,incident_spec_irr,1.d0)
   call get_cdf(cdf,l,incident_spec_irr,nwl)
   tot_irr=sum(incident_spec_irr)
+  !___________________
   print*,'Incident spectral irradiance loaded from ', fname_incident_irradiation
   print*,'Total irradiance:',tot_irr
   print*,'Diffuse Fraction',diff
@@ -111,7 +112,7 @@ endif
      !**** Loop over nph photons from each source *************************
 scatter_count=0
 
-do j=1,nphotons
+do j=1,5
     if(mod(j,100000).eq.0)then
       print *, j,' scattered photons completed'
     end if
@@ -172,7 +173,7 @@ do j=1,nphotons
         end do
 
      end do ! end loop over nph photons
-
+stop
      print*, 'total number scatterings',scatter_count, 'per packet', real(scatter_count)/real(nphotons)
      !--------------------------------------------------------------------------------
      !     CONVERT PATH LENGTH COUNTER(S) INTO PATH LENGTH ESIMATORS
