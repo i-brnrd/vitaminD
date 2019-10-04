@@ -3,20 +3,20 @@ module source_ph_mod
   save
 contains
 
-  subroutine  sourceph(xmax,ymax,zmax,twopi,xcell,ycell,zcell,&
+  subroutine  sourceph(twopi,xcell,ycell,zcell,&
           cdf,diff,b_wl,diffuse_flag)
 
-
+    use optical_properties_mod, ONLY: nwl
     use packet_mod
     use mc_sample_mod
-    use grid_mod
+    use grid_mod, ONLY:nxg,nyg,nzg, xmax,ymax,zmax,delta
     use search_bisec_mod
     implicit none
 
   !  include 'photon.txt'
 
     integer xcell,ycell,zcell
-    real*8 xmax,ymax,zmax,twopi
+    real*8 twopi
     real*8, intent(in):: cdf(nwl)
     integer low,up
     real*8 ran, theta

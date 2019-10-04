@@ -4,13 +4,13 @@ module gridset_mod
 contains
 
 
-  subroutine gridset(xmax,ymax,zmax,kappa)!(xface,yface,zface,MASK,xmax,ymax,zmax,kappa)
+  subroutine gridset(kappa)!(xface,yface,zface,MASK,xmax,ymax,zmax,kappa)
     use optical_properties_mod
-    use grid_mod
+    use grid_mod, ONLY: nxg,nyg,nzg,xface,yface,zface,MASK,xmax,ymax,zmax,delta
 
     implicit none
 
-    real*8 xmax,ymax,zmax,kappa
+    real*8 kappa
     real*8 x,y,z,rho,taueq,taupole
 
     integer i,j,k,p,layer

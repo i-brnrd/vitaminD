@@ -7,7 +7,7 @@ program mcpolar
   !*****Parameter declarations ****************************************
   !input params file will include IN SOME WAY
   integer nphotons   !number of photon packets sent into simulation
-  real*8 xmax,ymax,zmax !this is a grid parameter
+  !real*8 xmax,ymax,zmax !this is a grid parameter
 
   real*8 diff !diffuse fractions of incident light
   character*30 :: fname_incident_irradiation
@@ -24,7 +24,6 @@ program mcpolar
   integer:: pkt_count,scatter_count   !Counts packets that actually travel through medium (not reflected)
   real*8 ran
   real*8 albedo
-
 !properties of a PACKET/ al the packets....
   !include 'photon.txt'  !why !why !why
   real*8 hgg,g2  !Henyey Greenstein phase function variables
@@ -67,7 +66,7 @@ pc=0.
 sc=1.
 
 !INITIALISE GRID
-call gridset(xmax,ymax,zmax,kappa)
+call gridset(kappa)
 
 !INITIALISE PACKETS OPTICAL PROPERTIES
 if (nwl.gt.1) then
@@ -84,7 +83,6 @@ if (nwl.gt.1) then
   print*,'Incident spectral irradiance loaded from ', fname_incident_irradiation
   print*,'Total irradiance:',tot_irr
   print*,'Diffuse Fraction',diff
-  !NOW you should be able to USE the optical properties as a module and have them filled up
 
   !JAQUES VERIFICATION: DEFO into SUBROUTINE BUT WHEN modules are wrangled.
 else
@@ -119,8 +117,7 @@ do j=1,nphotons
     end if
 
         !*****Release photon from point source *******************************
-    call sourceph(xmax,ymax,zmax,twopi,xcell,ycell,zcell,&
-            cdf,diff,b_wl,diffuse_flag)
+    call sourceph(twopi,xcell,ycell,zcell,cdf,diff,b_wl,diffuse_flag)
         if (nwl.eq.1) b_wl=1
 
         if (diffuse_flag) then
@@ -143,8 +140,8 @@ do j=1,nphotons
 
         !******Find FIRST scattering location
        ! if((xcell.lt.1).or.(ycell.lt.1).or.(zcell.lt.1)) EXIT
-       !IMPORTANT NOTEy its arguably faster for a single opprop set to be given tp tauint2. i don't know. 
-        call tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
+       !IMPORTANT NOTEy its arguably faster for a single opprop set to be given tp tauint2. i don't know.
+        call tauint3(j,xp,yp,zp,nxp,nyp,nzp,&
              xcell,ycell,zcell,tflag,u_s(:,b_wl),u_a(:,b_wl),b_wl,seg_flag)
 
         if (seg_flag.eq.1) EXIT
@@ -168,7 +165,7 @@ do j=1,nphotons
            endif
            !************Find next scattering location
             !if((xcell.lt.1).or.(ycell.lt.1).or.(zcell.lt.1)) EXIT
-           call tauint2(j,xp,yp,zp,nxp,nyp,nzp,xmax,ymax,zmax,&
+           call tauint3(j,xp,yp,zp,nxp,nyp,nzp,&
                 xcell,ycell,zcell,tflag,u_s_old,u_a_old,b_wl,seg_flag)
            !print*,xcell,ycell,zcell
            if (seg_flag.eq.1) EXIT
@@ -180,7 +177,7 @@ do j=1,nphotons
      !--------------------------------------------------------------------------------
      !     CONVERT PATH LENGTH COUNTER(S) INTO PATH LENGTH ESIMATORS
      print*,'photon count', pkt_count, nphotons, pkt_count/nphotons
-     CALL PL_ESTIMATORS(pkt_count,nphotons,XMAX,YMAX,ZMAX,l,tot_irr,incident_spec_irr)
+     CALL PL_ESTIMATORS(pkt_count,nphotons,l,tot_irr,incident_spec_irr)
      print*,'Average number of scatterings = ',(scatter_count/nphotons)
 
 endprogram mcpolar

@@ -24,7 +24,7 @@ objects = optical_properties.o\
 	mc_sample.o\
 	sourceph.o\
 	reflect.o\
-	tauint2.o\
+	tauint3.o\
 	stokes.o\
 	pl_estimators.o\
 	mcpolar.o

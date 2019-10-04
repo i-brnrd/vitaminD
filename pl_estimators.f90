@@ -4,14 +4,14 @@ module pl_estimators_mod
 contains
 
 !--------------------------------------------------------------------------------
-  SUBROUTINE PL_ESTIMATORS(ph_count,nphotons,XMAX,YMAX,ZMAX,wls,L,lumin)
+  SUBROUTINE PL_ESTIMATORS(ph_count,nphotons,wls,L,lumin)
     use optical_properties_mod, only: n_phot_wl
-    use grid_mod
+    use grid_mod!, only: xmax,ymax,zmax
     implicit none
 
     integer, intent(in) :: ph_count,nphotons
 
-    real*8, intent(in) :: xmax,ymax,zmax
+
     real*8, intent(in) :: wls(nwl)
     real*8 :: lumin(nwl)
     real*8 :: A,V
@@ -85,7 +85,7 @@ contains
     enddo
 
 
-    
+
     do m=1,nwl
       l_sum=l_sum+lumin(m)
 
