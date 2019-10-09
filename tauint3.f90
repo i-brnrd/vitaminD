@@ -1,460 +1,245 @@
-module tauint3_mod
-  implicit none
-  save
-contains
+ module tauint3_mod
+   implicit none
+   save
+ contains
 
 subroutine tauint3(j,xp,yp,zp,nxp,nyp,nzp,&
      xcell,ycell,zcell,tflag,u_s,u_a,b_wl,seg_flag)
+use optical_properties_mod, only: nlayer 
+use grid_mod, only: xmax,ymax,zmax,xface,yface,zface, MASK
+
+implicit none
+
+!INTENTS 
+integer, intent(in) :: j, b_wl
+real*8, intent(inout) :: xp,yp,zp,nxp,nyp,nzp,u_s(nlayer), u_a(nlayer)
+integer, intent(inout):: xcell,ycell,zcell 
+
+!mcrt, path lengths & optical 
+real*8:: ran !random random_number
+real*8:: tau,taurun, taucell !optical depths 
+real*8:: d, d_cell  !actual distance travelled 
+real*8 :: rk_tot,u_a_tot !total optical properties over all species 
+
+
+real*8 :: pos(3),dir(3),grid_max(3),faces(3,3)
+integer :: cell(3)
+
+
+integer :: seg_flag, tflag
+logical :: face_flag(3),edge_flag(3),terminate 
+integer :: i 
+
+!SWITCH COORDINATE SYSTEMS: Sandboxes tauint2 to an extent
+pos(1)=xp + xmax
+pos(2)=yp + ymax
+pos(3)=zp + zmax
+
+cell(1)=xcell
+cell(2)=ycell
+cell(3)=zcell 
+
+dir(1)=nxp
+dir(2)=nyp
+dir(3)=nzp
+
+grid_max(1)=xmax
+grid_max(2)=ymax
+grid_max(3)=zmax
+
+!Intitalise edge flags and cumulative distances 
+edge_flag=(/.false.,.false.,.false./)
+face_flag=(/.false.,.false.,.false./)
+taurun=0.
+d=0. 
+!get random optical depth 
+call random_number(ran)
+tau=-log(ran)
+
+
+do
+	!find the next cell wall and distance to it 
+	call find_next_cell(cell,pos,dir,grid_max,d_cell,face_flag,faces)
+
+	!set optical properties for current cell 
+  rk_tot=0. 
+  u_a_tot=0.
+  do i=1,nlayer
+    rk_tot=rk_tot+ (MASK(cell(1),cell(2),cell(3),i)*(u_s(i) + u_a(i)))
+    u_a_tot=u_a_tot+ (MASK(cell(1),cell(2),cell(3),i)*u_a(i))  
+  enddo
+  taucell=d_cell*rk_tot
+
+  if (taurun + taucell .lt.tau) then !packet passes through current voxel 
+    !Update path length counters, and position, and return to main program 
+    taurun=taurun + taucell
+    d=d+d_cell
+    terminate=.false.
+    !PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+d_cell 
+
+    call update_position(terminate,d_cell,pos,dir,cell,faces,face_flag,edge_flag)
+    print*, 'EDGE FLAG', edge_flag,'FACE FLAG',face_flag,'CELL', cell 
+    if (any(edge_flag)) then
+      print*, 'MProg out of bounds WHOOOO', cell
+      stop
+    endif
+
+  else !within the voxel, we reach the interaction location (TERMINATE)
+    !Update path length counters, and position, and return to main program 
+    d_cell=((tau-taurun)/rk_tot)
+    d=d+d_cell
+    terminate=.true. 
+    !	PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+d_cell 
+    call update_position(terminate,d_cell,pos,dir,cell,faces,face_flag) !with an exit flag 
+    EXIT
+  endif 
+enddo
+
+!Switch coordinate systems back to those used in main modules 
+xp=pos(1) -xmax
+yp=pos(2) -ymax
+zp=pos(3) -zmax
+
+xcell=cell(1)
+ycell=cell(2)
+zcell=cell(3)
+
+end subroutine
+end module
 
-  use grid_mod
-  implicit none
-
-  integer, intent(in)::j
-  integer tflag,xcell,ycell,zcell,count,seg_flag
-  real*8 xp,yp,zp,nxp,nyp,nzp!,xmax,ymax,zmax
-  real*8 ran
-  real*8 gsmax, dir_test
-
-  real*8 function_test
-
-  integer ci,cj,ck
-  real*8 tau,taurun,taucell,d,d1,dcell,xcur,ycur,zcur
-  real*8 dx,dy,dz,smax
-
-  real*8 rk, uat !rhokappa,energy_absorbed
-  real*8 u_s(nlayer),u_a(nlayer)
-  real*8 wl
-  integer  i, b_wl
-
-  real*8 ns,ca,ct1,ct2,st1,st2,rf !snell & fresnel components (ct1:costheta1 etc.)
-
-
-  !*****tflag=0 means photon is in envelope
-  tflag=0
-  !**** generate random optical depth tau
-  call random_number(ran)
-  tau=-log(ran)
-
-
-
-  tau=1.58
-
-  !**********!SETUP REFRACTIVE INDEX PARAMETERS
-  NS=1.38                   !REFRACTIVE INDEX OF SKIN
-  CA=ASIN(1./NS)            !CRITICAL ANGLE
-
-  !*****set the cumulative distance and optical depth (d and taurun)
-  !*****along the photon path to zero.  set the current photon coordinates.
-  !*****note that the origin of the (xcur,ycur,zcur) system is at the
-  !*****bottom corner of the grid.
-  taurun=0.
-  d=0
-  xcur=xp+xmax
-  ycur=yp+ymax
-  zcur=zp+zmax
-
-  ci=xcell
-  cj=ycell
-  ck=zcell
-  smax=gsmax(nxp,nyp,nzp,xmax,ymax,zmax,xcur,ycur,zcur)
-
-  !*****integrate through grid
-
-  if(smax.lt.delta) then
-     tflag=1
-     return
-  endif
-
- !print*, function_test(xcur,ycur)
-! stop
-  do
-
-     !*****find distance to next x, y, and z cell walls.
-    ! *****note that dx is not the x-distance, but the actual distance along
-    ! *****the direction of travel to the next x-face, and likewise for dy and dz.
-
-     if(nxp.gt.0.) then
-        dx=(xface(ci+1)-xcur)/nxp
-        if(dx.lt.delta) then
-           xcur=xface(ci+1)
-           ci=ci+1
-          dx=(xface(ci+1)-xcur)/nxp
-        endif
-     elseif(nxp.lt.0.) then
-        dx=(xface(ci)-xcur)/nxp
-        if(dx.lt.delta) then
-           xcur=xface(ci)
-           dx=(xface(ci-1)-xcur)/nxp
-           ci=ci-1
-        endif
-     elseif(nxp.eq.0.) then
-        dx=1.e2*xmax
-     endif
-
-     if(nyp.gt.0.) then
-        dy=(yface(cj+1)-ycur)/nyp
-        if(dy.lt.delta) then
-           ycur=yface(cj+1)
-           cj=cj+1
-           dy=(yface(cj+1)-ycur)/nyp
-        endif
-     elseif(nyp.lt.0.) then
-        dy=(yface(cj)-ycur)/nyp
-        if(dy.lt.delta) then
-           ycur=yface(cj)
-           dy=(yface(cj-1)-ycur)/nyp
-           cj=cj-1
-        endif
-     elseif(nyp.eq.0.) then
-        dy=1.e2*ymax
-     endif
-
-     if(nzp.gt.0.) then
-        dz=(zface(ck+1)-zcur)/nzp
-        if(dz.lt.delta) then
-           zcur=zface(ck+1)
-           ck=ck+1
-           dz=(zface(ck+1)-zcur)/nzp
-        endif
-     elseif(nzp.lt.0.) then
-        dz=(zface(ck)-zcur)/nzp
-        if(dz.lt.delta) then
-           zcur=zface(ck)
-           dz=(zface(ck-1)-zcur)/nzp
-           ck=ck-1
-        endif
-     elseif(nzp.eq.0.) then
-        dz=1.e2*zmax
-     endif
-
-     print*, dx,dy,dz
-     print*,dir_test(nxp,xcur,ci)
-     stop
-     !this is a bit of a cheat: see screenshots in ./debug
-     !*******THIS USED TO BE (dx.eq.0.)
-
-     if( (dx.eq.0.) .or. ((abs(dx)).lt.(delta)) ) dx=1.e2*xmax
-     if( (dy.eq.0.) .or. ((abs(dy)).lt.(delta)) ) dy=1.e2*ymax
-     if( (dz.eq.0.) .or. ((abs(dz)).lt.(delta)) ) dz=1.e2*zmax
-
-     !*****find distance to next cell wall -- minimum of dx, dy, and dz
-
-     dcell=amin1(dx,dy,dz)
-
-     if(dcell.le.0.) then
-!!$        print *,'tauint2: dcell < 0',dx,dy,dz,nxp,nyp,nzp
-!!$        print *,xcur,ycur,zcur,ci,cj,ck
-        print*,'dcell < 0 fault @ at pkt',j,dcell,dx,dy,dz
-        seg_flag=1
-        return
-     endif
-     if(dx.lt.0.) dcell=amin1(dy,dz)
-     if(dy.lt.0.) dcell=amin1(dx,dz)
-     if(dz.lt.0.) dcell=amin1(dx,dy)
-
-!!$
-!!$     if((ci.gt.nxg).or.(ci.lt.0))  print*,j,'celli',ci,xcur
-!!$     if((cj.gt.nyg).or.(cj.lt.0)) print*,j,'cellj',cj,ycur
-!!$     if((ck.gt.nyg).or.(ck.lt.0)) print*,j,'cellk',ck,xcur
-      !print*, ci,cj,ck
-     if((ci.gt.nxg).or.(ci.lt.1).or.(cj.gt.nyg).or.(cj.lt.1).or.(ck.gt.nzg).or.(ck.lt.1)) then
-        print*,'cell out of bounds @ pkt',j, ci,cj,ck
-        seg_flag=1
-        return
-     endif
-
-
-
-
-     !*****distances are only zero if photon is on cell wall.  if it is
-     !*****on cell wall then set to arbitrary large distance, since we will
-     !*****in fact hit another wall
-
-     !*****optical depth to next cell wall is
-     !*****taucell= (distance to cell)*(opacity of current cell)
-
-     rk=0.
-     uat=0.
-     do i=1,nlayer
-        rk=(MASK(ci,cj,ck,i)*(u_s(i) + u_a(i)))+rk
-        uat= (MASK(ci,cj,ck,i)*u_a(i)) + uat
-     enddo
-     !rhokap(ci,cj,ck)=rk
-     !print*,'RK',rhokap(ci,cj,ck)
-
-     !taucell=dcell*rhokap(ci,cj,ck)
-     taucell=dcell*rk
-
-
-     !*****if taurun+taucell>tau then scatter at distance d+d1.
-     !*****update photon position and cell.
-     !*****if taurun+taucell<tau then photon moves distance dcell
-     !*****(i.e. ends up on next cell wall) and update photon position
-     !*****and cell.
-
-     !*****this is PL Counterbgf
-
-     if((taurun+taucell).ge.tau) then
-
-        d1=(tau-taurun)/rk
-        d=d+d1
-        taurun=taurun+taucell
-        xcur=xcur+d1*nxp
-        ycur=ycur+d1*nyp
-        zcur=zcur+d1*nzp
-
-        PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+D1
-
-
-
-        !***************Linear Grid ************************
-        ci=int(nxg*xcur/(2.*xmax))+1
-        cj=int(nyg*ycur/(2.*ymax))+1
-        ck=int(nzg*zcur/(2.*zmax))+1
-        !****************************************************
-        EXIT                !Exit Do loop
-
-     ELSE
-
-        d=d+dcell
-        taurun=taurun+taucell
-
-        if (d.gt.(smax*0.999)) then
-           !     WHICH EDGE WILL IT HIT?
-           if ((dx.lt.dy).AND.(dx.lt.dz)) then
-
-              PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+DCELL
-            !E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+(dcell*ea)
-
-              xcur=xcur+dcell*nxp
-              ycur=ycur+dcell*nyp
-              zcur=zcur+dcell*nzp
-
-              xcur=(2.*xmax)-xcur !flip
-
-              !***************Linear Grid ************************
-              ci=int(nxg*xcur/(2.*xmax))+1
-              cj=int(nyg*ycur/(2.*ymax))+1
-              ck=int(nzg*zcur/(2.*zmax))+1
-              !****************************************************
-
-              smax=gsmax(nxp,nyp,nzp,xmax,ymax,zmax,xcur,ycur,zcur)
-              d=0.
-              CYCLE
-
-           elseif ((dy.lt.dx).and.(dy.lt.dz)) then
-
-              !     IF GOING TO HIT YEDGE, LOOP
-
-              PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+DCELL
-            !  E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+(dcell*ea)
-
-              xcur=xcur+dcell*nxp
-              ycur=ycur+dcell*nyp
-              zcur=zcur+dcell*nzp
-
-              ycur=(2.*ymax)-ycur
-              !***************Linear Grid ************************
-              ci=int(nxg*xcur/(2.*xmax))+1
-              cj=int(nyg*ycur/(2.*ymax))+1
-              ck=int(nzg*zcur/(2.*zmax))+1
-              !****************************************************
-
-              smax=gsmax(nxp,nyp,nzp,xmax,ymax,zmax,xcur,ycur,zcur)
-              d=0.
-              CYCLE
-
-           ELSE          ! HIT Z
-              IF(nzp.le.0) then ! hitting bottom edge; let it go
-                 tflag =1
-                 EXIT
-              ELSE       !hitting skin surface... reflect or transmit...
-
-                 CT1=NZP
-
-                 IF (ACOS(CT1).GT.CA) THEN !TIR
-
-                    PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+DCELL
-                    !E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+(dcell*ea)
-
-                    xcur=xcur+dcell*nxp
-                    ycur=ycur+dcell*nyp
-                    zcur=zcur+dcell*nzp
-                    !***************Linear Grid ************************
-                    ci=int(nxg*xcur/(2.*xmax))+1
-                    cj=int(nyg*ycur/(2.*ymax))+1
-                    ck=int(nzg*zcur/(2.*zmax))+1
-                    !****************************************************
-
-                    NZP = -NZP !CONTINUE WITH INTEGRATION
-                    CT1=NZP
-
-                    smax=gsmax(nxp,nyp,nzp,xmax,ymax,zmax,xcur,ycur,zcur)
-                    d=0.
-                    CYCLE
-
-                 ELSE    !CALCULATE SNELL& FRESNEL EQU. COMPONENTS
-
-                    ST1=SIN(ACOS(CT1))
-                    ST2=ST1*NS
-                    CT2=COS(ASIN(ST2))
-
-                    RF = ((NS*CT1-CT2)/(NS*CT1 + CT2))**2
-                    RF = RF + ((NS*CT2-CT1)/(NS*CT2 + CT1))**2
-                    RF = RF/2.
-
-                    call random_number(ran)
-                    IF (RAN.LT.RF) THEN !REFLECT PHOTON
-
-                       PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+DCELL
-                       !E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+dcell*ea
-                       xcur=xcur+dcell*nxp
-                       ycur=ycur+dcell*nyp
-                       zcur=zcur+dcell*nzp
-                       !***************Linear Grid ************************
-                       ci=int(nxg*xcur/(2.*xmax))+1
-                       cj=int(nyg*ycur/(2.*ymax))+1
-                       ck=int(nzg*zcur/(2.*zmax))+1
-                       !***************************************************
-
-                       nzp = -nzp
-                       ct1=nzp
-
-                       smax=gsmax(nxp,nyp,nzp,xmax,ymax,zmax,xcur,ycur,zcur)
-                       d=0.
-                       CYCLE
-
-                    else ! I don't know
-                       tflag=1
-                       EXIT
-                    ENDIF
-                 endif
-              endif
-           endif
-
-        else
-
-           PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+DCELL
-           !E_SUM(b_wl,ci,cj,ck)=E_SUM(b_wl,ci,cj,ck)+dcell*ea
-
-           xcur=xcur+dcell*nxp
-           ycur=ycur+dcell*nyp
-           zcur=zcur+dcell*nzp
-           !***************Linear Grid ************************
-           ci=int(nxg*xcur/(2.*xmax))+1
-           cj=int(nyg*ycur/(2.*ymax))+1
-           ck=int(nzg*zcur/(2.*zmax))+1
-           !****************************************************
-        endif
-
-
-     endif
-  end do
-
-  !*****calculate photon final position.  if it escapes envelope then
-  !*****set tflag=1.  if photon doesn't escape leave tflag=0 and update
-  !*****photon position.
-  if((d.ge.(smax*0.999))) then
-     tflag=1
-  else
-
-     xp=xcur-xmax
-     yp=ycur-ymax
-     zp=zcur-zmax
-     xcell=ci
-     ycell=cj
-     zcell=ck
-
-  endif
-
-  return
+
+subroutine boundary_conditions(edge_flag)
+
+
+
 end subroutine
 
-end module tauint3_mod
 
-
-
-
-function dir_test(nxp,xcur,ci)
-  !dx is the distace long the firection of movement to the next xface
-  !UNLESS dx < delta. if it is we just move it TO the next face.
-  !like it's already so close to the next face just move it to the next face?
-  !THIS ALSO CHANGES ci though
-  use grid_mod, ONLY: xface, delta, xmax
- implicit none
-   real*8 dx,nxp,xcur
-   integer ci
-   real*8 dir_test
-
-
-
-   if(nxp.gt.0.) then
-      dx=(xface(ci+1)-xcur)/nxp
-      if(dx.lt.delta) then
-         xcur=xface(ci+1)
-         ci=ci+1
-        dx=(xface(ci+1)-xcur)/nxp
-      endif
-   elseif(nxp.lt.0.) then
-      dx=(xface(ci)-xcur)/nxp
-      if(dx.lt.delta) then
-         xcur=xface(ci)
-         dx=(xface(ci-1)-xcur)/nxp
-        ci=ci-1
-      endif
-  elseif(nxp.eq.0.) then
-      dx=1.e2*xmax
-   endif
-   dir_test=dx
-
- return
- end function dir_test
-
-
-
-function function_test(a,b)
-  use grid_mod
+subroutine update_position(terminate,d_cell,current_position,dir,cell,faces,face_flag,edge_flag)!(cell,pos,dir,grid_max,dist_min,face_flag))
+use grid_mod, only: delta,xface,yface,zface 
 implicit none
-  real*8 a,b
-  real*8 function_test
-  !print*, 'using gridmod in function'
-  !print*, nxg,nyg,nzg
-  !function_test=nxg+nyg+nzg
 
-return
-end function function_test
+logical :: face_flag(3),edge_flag(3)
+real*8,intent(in) :: faces(3,3)
+integer, intent(inout):: cell(3)
+real*8, intent(inout) :: current_position(3)
+real*8, intent(in) :: dir(3),d_cell
+real*8 :: deltas(3)
+logical, intent(in) :: terminate 
+integer::i
 
-FUNCTION  gsmax(nxp,nyp,nzp,xmax,ymax,zmax,xcur,ycur,zcur)
-  implicit none
-  real*8 gsmax
-  real*8 nxp,nyp,nzp,xmax,ymax,zmax
-  real*8 xcur,ycur,zcur,dsx,dsy,dsz
+integer:: low, up 
 
-  if(nxp.gt.0.) then
-     dsx=(2.*xmax-xcur)/nxp
-  elseif(nxp.lt.0.) then
-     dsx=-xcur/nxp
-  elseif(nxp.eq.0.) then
-     dsx=1.e2*xmax
-  endif
+deltas=delta 
 
-  if(nyp.gt.0.) then
-     dsy=(2.*ymax-ycur)/nyp
-  elseif(nyp.lt.0.) then
-     dsy=-ycur/nyp
-  elseif(nyp.eq.0.) then
-     dsy=1.e2*ymax
-  endif
+call get_cells(current_position,cell,edge_flag)
 
-  if(nzp.gt.0.) then
-     dsz=(2.*zmax-zcur)/nzp
-  elseif(nzp.lt.0.) then
-     dsz=-zcur/nzp
-  elseif(nzp.eq.0.) then
-     dsz=1.e2*zmax
-  endif
+if(terminate)then
+          do i=1,3
+          current_position(i)=current_position(i)+dir(i)*d_cell 
+        enddo
+else
+  do i=1,3
+   if(face_flag(i))then!use faces
+            if(dir(i).gt.0.) then
+              current_position(i)= faces(3,i) + deltas(i)
+            elseif(dir(i).lt.0.) then
+               current_position(i) = faces(2,i) - deltas(i)
+            else
+               print*,'Error in x dir in update_pos', dir,face_flag
+            end if
+     else 
+     current_position(i) = current_position(i)+ dir(i)*d_cell   
+   endif 
+  enddo
+  call get_cells(current_position,cell,edge_flag)
+endif
+end subroutine update_position
 
-  gsmax=amin1(dsx,dsy,dsz)
-  return
+subroutine get_cells(current_position, cell,edge_flag)
+!updates the current voxel based upon position
+       use grid_mod, only : xface, yface, zface, nxg,nyg,nzg,xmax,ymax,zmax
+       implicit none
 
-end function gsmax
+       real*8,    intent(IN):: current_position(3)
+       integer, intent(OUT) :: cell(3)
+       logical, intent(OUT) :: edge_flag(3)
+
+
+        cell(1)=int(real(nxg)*current_position(1)/(2.d0*xmax))+1
+        cell(2)=int(real(nyg)*current_position(2)/(2.d0*ymax))+1
+        cell(3)=int(real(nzg)*current_position(3)/(2.d0*zmax))+1
+
+
+
+        if ((cell(1).lt.1).or.(cell(1).gt.nxg))edge_flag(1)=.true.
+        if ((cell(2).lt.1).or.(cell(2).gt.nyg))edge_flag(2)=.true.
+        if ((cell(3).lt.1).or.(cell(3).gt.nzg))edge_flag(3)=.true.
+
+
+        if ((cell(1).lt.1).or.(cell(1).gt.nxg)) print*, 'XXXXXXXXXXXXXX'
+        if ((cell(2).lt.1).or.(cell(2).gt.nyg)) print*, 'YYYYYYYYYYYYY'
+        if ((cell(3).lt.1).or.(cell(3).gt.nzg)) print*, 'ZZZZZZZZZZZZZZ'
+
+   end subroutine get_cells
+
+
+!!!!!!!--------------------------
+subroutine find_next_cell(cell,pos,dir,grid_max,dist_min,face_flag,faces)
+	!difference between lewis & Kenny: we DO NOT update ci,cj,ck in here. 
+use grid_mod, only: xface,yface,zface
+implicit none
+real*8, intent(in) ::pos(3),dir(3),grid_max(3) !MODULE
+integer, intent(in) :: cell(3)
+logical, intent(out) :: face_flag(3)
+real*8 :: faces(3,3), distance(3), dist_min
+integer :: i
+
+!function
+real*8 :: dist_to_cell_wall
+	!initita;ise face)flag and distance 
+	face_flag=(/.false.,.false.,.false./) !LEwis has this 
+	!if (.not.any(face_flag))  print*,'all are false good'
+	distance=0.d0
+
+
+	faces(:,1)=(/xface(cell(1)-1),xface(cell(1)),xface(cell(1)+1)/)
+	faces(:,2)=(/yface(cell(2)-1),yface(cell(2)), yface(cell(2)+1)/)
+	faces(:,3)=(/zface(cell(3)-1),zface(cell(3)),zface(cell(3)+1)/)
+
+	do i=1,3
+		distance(i)=dist_to_cell_wall(dir(i),pos(i),faces(:,i),grid_max(i))
+	enddo
+
+
+	dist_min=minval(distance(:))
+	if(dist_min < 0.)print'(A,7F9.5)','dcell < 0.0 warning!! ',dist_min,distance,dir
+	face_flag(minloc(distance(:)))=.true.
+	print*, dist_min,face_flag
+	if (.not.any(face_flag))  print*,'Next Face Hit Flag ERROR'
+end subroutine find_next_cell
+
+function dist_to_cell_wall(direction,current_position,face_position,grid_max)
+ implicit none
+  real*8 :: dist_to_cell_wall
+   real*8,intent(in) :: direction, current_position, face_position(3),grid_max
+
+   if(direction.gt.0.) then
+
+      dist_to_cell_wall=(face_position(3)-current_position)/direction
+   elseif(direction.lt.0.) then
+
+      dist_to_cell_wall=(face_position(2)-current_position)/direction
+  elseif(direction.eq.0.) then
+
+      dist_to_cell_wall=1.e2*grid_max
+   endif
+ return
+end function
+
+
+
+
+
+
+

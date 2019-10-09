@@ -112,7 +112,7 @@ endif
      !**** Loop over nph photons from each source *************************
 scatter_count=0
 
-do j=1,5
+do j=1,20
     if(mod(j,100000).eq.0)then
       print *, j,' scattered photons completed'
     end if
@@ -143,9 +143,9 @@ do j=1,5
        ! if((xcell.lt.1).or.(ycell.lt.1).or.(zcell.lt.1)) EXIT
        !IMPORTANT NOTEy its arguably faster for a single opprop set to be given tp tauint2. i don't know.
         call tauint3(j,xp,yp,zp,nxp,nyp,nzp,&
-             xcell,ycell,zcell,tflag,u_s(:,b_wl),u_a(:,b_wl),b_wl,seg_flag)
-
-        if (seg_flag.eq.1) EXIT
+             xcell,ycell,zcell,tflag,u_s_old,u_a_old,b_wl,seg_flag)
+       
+        if (seg_flag.eq.1) CYCLE  !why
         !********Photon scatters in grid until it exits (tflag=1)
         tflag=0
         seg_flag=0
@@ -157,13 +157,17 @@ do j=1,5
            call random_number(ran)
            if(ran.lt.albedo) then
               cost=nzp
+        
               !************Scatter photon into new direction and update Stokes parameters
               call stokes(nxp,nyp,nzp,sint,cost,sinp,cosp,phi,&
                    fi,fq,fu,fv,pl,pc,sc,hgg,g2,pi,twopi)
               scatter_count=scatter_count+1
            else
+  
               EXIT
            endif
+
+         
            !************Find next scattering location
             !if((xcell.lt.1).or.(ycell.lt.1).or.(zcell.lt.1)) EXIT
            call tauint3(j,xp,yp,zp,nxp,nyp,nzp,&
@@ -171,9 +175,10 @@ do j=1,5
            !print*,xcell,ycell,zcell
            if (seg_flag.eq.1) EXIT
         end do
-
+       
      end do ! end loop over nph photons
-stop
+     stop
+     
      print*, 'total number scatterings',scatter_count, 'per packet', real(scatter_count)/real(nphotons)
      !--------------------------------------------------------------------------------
      !     CONVERT PATH LENGTH COUNTER(S) INTO PATH LENGTH ESIMATORS

@@ -21,15 +21,19 @@ contains
     print *, 'Setting up density grid....'
 
     !**********  Linear Cartesian grid. Set up grid faces ****************
-    do i=1,nxg+1
+    !do i=1,nxg+1
+      do i=-3,nxg+4
        xface(i)=(i-1)*2.*xmax/nxg
     end do
-    do i=1,nyg+1
+    !do i=1,nyg+1
+      do i=-3,nyg+4
        yface(i)=(i-1)*2.*ymax/nyg
     end do
-    do i=1,nzg+1
+    !do i=1,nzg+1
+      do i=-3,nzg+4
        zface(i)=(i-1)*2.*zmax/nzg
     end do
+    !**********  Linear Cartesian grid. Set up grid faces ****************
 
     !**************  Loop through x, y, and z to set up grid density.  ****
     do i=1,nxg
