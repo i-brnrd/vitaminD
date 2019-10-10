@@ -2,7 +2,7 @@
    implicit none
    save
  contains
-
+!PUT DELTAS INT
 subroutine tauint3(j,xp,yp,zp,nxp,nyp,nzp,&
      xcell,ycell,zcell,tflag,u_s,u_a,b_wl,seg_flag)
 use optical_properties_mod, only: nlayer 
@@ -27,10 +27,11 @@ integer :: cell(3)
 
 
 integer :: seg_flag, tflag
-logical :: face_flag(3),edge_flag(3),terminate 
+logical :: face_flag(3),edge_flag(3),complete
 integer :: i 
 
 !SWITCH COORDINATE SYSTEMS: Sandboxes tauint2 to an extent
+!PUT DELTAS IN THERE
 pos(1)=xp + xmax
 pos(2)=yp + ymax
 pos(3)=zp + zmax
@@ -74,27 +75,31 @@ do
     !Update path length counters, and position, and return to main program 
     taurun=taurun + taucell
     d=d+d_cell
-    terminate=.false.
+    complete=.false.
     !PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+d_cell 
 
-    call update_position(terminate,d_cell,pos,dir,cell,faces,face_flag,edge_flag)
+    call update_position(complete,d_cell,pos,dir,cell,faces,face_flag,edge_flag)
     print*, 'EDGE FLAG', edge_flag,'FACE FLAG',face_flag,'CELL', cell 
     if (any(edge_flag)) then
       print*, 'MProg out of bounds WHOOOO', cell
+      call boundary_behaviour(edge_flag,complete,cell,grid_max)
       stop
     endif
 
-  else !within the voxel, we reach the interaction location (TERMINATE)
+  else !within the voxel, we reach the interaction location
     !Update path length counters, and position, and return to main program 
     d_cell=((tau-taurun)/rk_tot)
     d=d+d_cell
-    terminate=.true. 
+    complete=.true. 
+    print*, 'LEAVING',j
     !	PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+d_cell 
-    call update_position(terminate,d_cell,pos,dir,cell,faces,face_flag) !with an exit flag 
+    call update_position(complete,d_cell,pos,dir,cell,faces,face_flag) !with an exit flag 
     EXIT
   endif 
 enddo
 
+!complete  is not the SAME as t_flag
+!complete is tau_reached 
 !Switch coordinate systems back to those used in main modules 
 xp=pos(1) -xmax
 yp=pos(2) -ymax
@@ -108,14 +113,55 @@ end subroutine
 end module
 
 
-subroutine boundary_conditions(edge_flag)
+subroutine boundary_behaviour(edge_flag,complete,cell,grid_max,pos)
+use grid_mod, only: nxg,nyg,nzg,delta
+implicit none 
+real*8, intent(inout) :: pos(3)
+real*8,intent(in) :: grid_max(3)
+logical, intent(inout) :: edge_flag(3), complete
+real*8 ::deltas(3)
+integer :: cell(3),ng(3)
+integer :: i, n_grid(3)
+print*, 'IN BOUnDARY CONDItionS', edge_flag
 
+deltas=delta
+ng=(/nxg,nyg,nzg/)
 
+do i=1,2
+if (edge_flag(i)) then
+  print*, 'x-y repeats nedeed',edge_flag
+    if (cell(i).lt.1) then
+      print*,'move to max', i, pos(i) 
+      pos(i)=(2.d0*grid_max(i))-deltas(i)
+      print*,'moved to max', i, pos(i) 
+    elseif (cell(i).gt.ng(i)) then
+     print*, 'move to min',i,pos(i)
+     print*, deltas(i)
+     pos(i)=deltas(i)
+     print*,'moved to min', i, pos(i) 
+    else 
+     print*,'Error in boundary_behaviour',edge_flag,cell
+    endif 
+ endif   
+enddo
+
+if(edge_flag(3)) then
+  print*, 'z behaviour needed!!'
+  if (cell(3).lt.1) then
+    print*,'bottom of grid...check we exit'
+  elseif(cell(3).gt.ng(3))then
+    print*,'need to do some fresnel!! ' 
+  else 
+    print*,'Error in boundary_behaviour',edge_flag,cell
+  endif 
+endif 
+
+edge_flag=(/.false.,.false.,.false./)
 
 end subroutine
 
 
-subroutine update_position(terminate,d_cell,current_position,dir,cell,faces,face_flag,edge_flag)!(cell,pos,dir,grid_max,dist_min,face_flag))
+subroutine update_position(complete,d_cell,current_position,dir,cell,faces,face_flag,edge_flag)!(cell,pos,dir,grid_max,dist_min,face_flag))
 use grid_mod, only: delta,xface,yface,zface 
 implicit none
 
@@ -125,7 +171,7 @@ integer, intent(inout):: cell(3)
 real*8, intent(inout) :: current_position(3)
 real*8, intent(in) :: dir(3),d_cell
 real*8 :: deltas(3)
-logical, intent(in) :: terminate 
+logical, intent(in) :: complete
 integer::i
 
 integer:: low, up 
@@ -134,7 +180,7 @@ deltas=delta
 
 call get_cells(current_position,cell,edge_flag)
 
-if(terminate)then
+if(complete)then
           do i=1,3
           current_position(i)=current_position(i)+dir(i)*d_cell 
         enddo
@@ -159,17 +205,23 @@ end subroutine update_position
 subroutine get_cells(current_position, cell,edge_flag)
 !updates the current voxel based upon position
        use grid_mod, only : xface, yface, zface, nxg,nyg,nzg,xmax,ymax,zmax
+       use search_bisec_mod
        implicit none
 
        real*8,    intent(IN):: current_position(3)
        integer, intent(OUT) :: cell(3)
        logical, intent(OUT) :: edge_flag(3)
+       integer :: low,up
+  
+        call search_bisec(current_position(1),xface,low,up)
+        cell(1)=low + lbound(xface,1) -1 
 
 
-        cell(1)=int(real(nxg)*current_position(1)/(2.d0*xmax))+1
-        cell(2)=int(real(nyg)*current_position(2)/(2.d0*ymax))+1
-        cell(3)=int(real(nzg)*current_position(3)/(2.d0*zmax))+1
+        call search_bisec(current_position(2),xface,low,up)
+        cell(2)=low + lbound(yface,1) -1 
 
+        call search_bisec(current_position(3),zface,low,up)
+        cell(3)=low + lbound(zface,1) -1
 
 
         if ((cell(1).lt.1).or.(cell(1).gt.nxg))edge_flag(1)=.true.
@@ -190,10 +242,12 @@ subroutine find_next_cell(cell,pos,dir,grid_max,dist_min,face_flag,faces)
 use grid_mod, only: xface,yface,zface
 implicit none
 real*8, intent(in) ::pos(3),dir(3),grid_max(3) !MODULE
-integer, intent(in) :: cell(3)
+integer, intent(inout) :: cell(3)
 logical, intent(out) :: face_flag(3)
 real*8 :: faces(3,3), distance(3), dist_min
 integer :: i
+
+logical:: edge_flag(3)
 
 !function
 real*8 :: dist_to_cell_wall
@@ -209,11 +263,17 @@ real*8 :: dist_to_cell_wall
 
 	do i=1,3
 		distance(i)=dist_to_cell_wall(dir(i),pos(i),faces(:,i),grid_max(i))
+     if (distance(i).lt.0.) then
+      print*,'xory',i,'cell', cell(i),'direct',dir(i),'positio',pos(i),'3 faces',faces(:,i),grid_max(i)
+     call get_cells(pos,cell,edge_flag)
+      print*, cell
+     endif 
 	enddo
 
 
 	dist_min=minval(distance(:))
-	if(dist_min < 0.)print'(A,7F9.5)','dcell < 0.0 warning!! ',dist_min,distance,dir
+	if(dist_min < 0.)print*,'dcell < 0.0 warning!! ',dist_min,distance,dir
+  if(dist_min < 0.)stop
 	face_flag(minloc(distance(:)))=.true.
 	print*, dist_min,face_flag
 	if (.not.any(face_flag))  print*,'Next Face Hit Flag ERROR'
@@ -225,13 +285,10 @@ function dist_to_cell_wall(direction,current_position,face_position,grid_max)
    real*8,intent(in) :: direction, current_position, face_position(3),grid_max
 
    if(direction.gt.0.) then
-
       dist_to_cell_wall=(face_position(3)-current_position)/direction
    elseif(direction.lt.0.) then
-
       dist_to_cell_wall=(face_position(2)-current_position)/direction
   elseif(direction.eq.0.) then
-
       dist_to_cell_wall=1.e2*grid_max
    endif
  return

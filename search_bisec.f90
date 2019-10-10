@@ -28,7 +28,6 @@ module search_bisec_mod
          endif
       enddo
 
-      
       return
       end subroutine 
 !***********************************************************************

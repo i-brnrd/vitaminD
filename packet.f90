@@ -3,7 +3,7 @@ module packet_mod
   save
 
 
-  real*8 xp,yp,zp   !current position in grid
+  real*8 xp,yp,zp !current position in grid
   real*8 nxp,nyp,nzp !current direction of packet 
 
   !HERE BE DRAGONS

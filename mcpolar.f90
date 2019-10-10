@@ -39,8 +39,9 @@ program mcpolar
  real*8 kappa,pl,pc,sc
  integer tflag, seg_flag, r_flag
 
- logical:: diffuse_flag
 
+
+ logical:: diffuse_flag
 
  print*,'**********************'
  print*,'Simulation of MC-UVRT through upper layers of skin'
@@ -52,6 +53,7 @@ program mcpolar
  print*, 'model size(cm)', xmax,ymax,zmax
  print*, 'sim in',nlayer, ' layers'
  print*, 'using photons', nphotons
+ print*,'**********************'
 
 call iarray !Initialise the arrays shared by the modules to 0
 
@@ -112,7 +114,7 @@ endif
      !**** Loop over nph photons from each source *************************
 scatter_count=0
 
-do j=1,20
+do j=1,5
     if(mod(j,100000).eq.0)then
       print *, j,' scattered photons completed'
     end if
