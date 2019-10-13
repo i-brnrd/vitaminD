@@ -3,9 +3,8 @@ module source_ph_mod
   save
 contains
 
-  subroutine  sourceph(twopi,xcell,ycell,zcell,&
-          cdf,diff,b_wl,diffuse_flag)
-
+  subroutine  sourceph(cdf,diffuse_fraction,b_wl,diffuse_flag)
+    use constants_mod, ONLY: twopi
     use optical_properties_mod, ONLY: nwl
     use packet_mod
     use mc_sample_mod
@@ -13,14 +12,10 @@ contains
     use search_bisec_mod
     implicit none
 
-  !  include 'photon.txt'
-
-    integer xcell,ycell,zcell
-    real*8 twopi
     real*8, intent(in):: cdf(nwl)
     integer low,up
     real*8 ran, theta
-    real*8 diff
+    real*8 diffuse_fraction
     integer b_wl
     logical:: diffuse_flag
 
@@ -29,6 +24,8 @@ contains
       call random_number(ran)
       call search_bisec(ran,cdf,low,up)
       b_wl=low
+    else
+      b_wl=1
     endif
 
 
@@ -51,7 +48,7 @@ contains
     phi=twopi*ran
 
     call random_number(ran)
-    if (ran.lt.diff) then
+    if (ran.lt.diffuse_fraction) then
       diffuse_flag=.true.!d_flag =1 if the photon is diffuse
 
        COST = cos(theta)

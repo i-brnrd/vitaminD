@@ -21,10 +21,10 @@ subroutine iarray
   l=0.
   lcount=0
 
-  u_s=0.
-  u_a=0.
-  g_skin=0.
-  n_skin=0.
+  u_s_all=0.
+  u_a_all=0.
+  g_all=0.
+  n_all=0.
 
 
 
