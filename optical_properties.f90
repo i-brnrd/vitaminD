@@ -7,7 +7,7 @@ module optical_properties_mod
   integer, parameter :: nlayer=5
 
   real*8  :: l(nwl)
-  integer :: n_phot_wl(nwl)
+  integer :: n_pkt_wl(nwl)
   integer :: lcount(nlayer)
 
   real*8,dimension(nlayer,nwl):: u_s_all,u_a_all

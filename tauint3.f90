@@ -7,7 +7,7 @@
 
 subroutine tauint3(j,inside,b_wl)
 use optical_properties_mod, only: nlayer 
-use grid_mod, only: xmax,ymax,zmax,MASK,nxg,nyg,nzg,grid_max
+use grid_mod, only: xmax,ymax,zmax,MASK,nxg,nyg,nzg,grid_max, PL_SUM
 use packet_mod, only: xp,yp,zp,nxp,nyp,nzp,cost,xcell,ycell,zcell, u_a,u_s
 implicit none
 !INTENTS 
@@ -39,19 +39,17 @@ dir(1)=nxp
 dir(2)=nyp
 dir(3)=nzp
 
-!Intitalise edge flags and cumulative distances 
+!Intitalise edge flags and cumulative optical depths/distances 
 edge_flag=(/.false.,.false.,.false./)
 face_flag=(/.false.,.false.,.false./)
-
-print*,'**************************************ENTERINGtauint pkt',j
 
 taurun=0.
 d=0. 
 !get random optical depth 
 call random_number(ran)
 tau=-log(ran)
-do
 
+do
   !find the current cell details, next cell wall and distance to it 
   call find_next_cell(cell,pos,dir,d_cell,faces,face_flag)
   !set optical properties for current cell. 
@@ -66,23 +64,19 @@ do
  !decide if packet keeps progrressing or reaches optical depth in current cell
   if (taurun + taucell .lt.tau) then 
     !packet passes through current voxel 
-    !Update path length counters, and position, and return to main program 
+    !Update path length counters and continue 
     taurun=taurun + taucell
     d=d+d_cell
     tau_done=.false.
-    !PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+d_cell 
+    PL_SUM(b_wl,cell(1),cell(2),cell(3))=PL_SUM(b_wl,cell(1),cell(2),cell(3))+d_cell 
     call update_position(tau_done,d_cell,pos,dir,cell,faces,face_flag,edge_flag)
-
-    !if we are over any edge, outside domain,
+    !if we are over any edge(outside domain)
     !then edge_flag should be triggered 
     if (any(edge_flag)) then
-      print*, 'EDGE FLAG', edge_flag,'FACE FLAG',face_flag,'CELL', cell 
+
       call boundary_behaviour(edge_flag,tau_done,cell,grid_max,pos,dir(3),inside)
-      !is the incorrect edge flag being carried over up there? check this....
-      print*, '********Boundary behaviour COMPLETE wiht edgeflag', edge_flag, dir(3)
 
       if (.not.inside) then 
-        print*, 'OUTSIDE: left via z....', inside
         EXIT
       endif
     endif
@@ -92,20 +86,14 @@ do
     d_cell=((tau-taurun)/rk_tot)
     d=d+d_cell
     tau_done=.true. 
-    !	PL_SUM(b_wl,CI,CJ,CK)=PL_SUM(b_wl,CI,CJ,CK)+d_cell 
+    PL_SUM(b_wl,cell(1),cell(2),cell(3))=PL_SUM(b_wl,cell(1),cell(2),cell(3))+d_cell
     call update_position(tau_done,d_cell,pos,dir,cell,faces,face_flag,edge_flag) !with an exit flag 
     EXIT
   endif 
-  print*, 'continuing on with integration...', dir(3)
 enddo
 
-print*, '**************** leaving tau int; packet', j, 'inside?', inside, 'tau done?', tau_done 
-
-if (inside.and.(.not.tau_done)) print*, 'line 102 tauint3, total disaster'
+if (inside.and.(.not.tau_done)) print*, 'Left integration INSIDE&&.not.TAU_DONE: hard stop TauInt3'
 if (inside.and.(.not.tau_done)) stop
-
-print*, inside 
-!tau_done  is not the SAME as t_flag
 
 !Switch coordinate systems back to those used in main modules 
 xp=pos(1) -xmax
@@ -136,11 +124,7 @@ integer :: cell(3)
 integer :: i,j
 logical :: reflect_flag
 
-
-print*, '*******IN BOUnDARY CONDItionS', edge_flag, cell, pos 
-
 deltas=delta
-
 
 if (edge_flag(1)) then !reflect boundaries (tbh call...)
   call repeat_bounds(cell(1),deltas(1),grid_max(1),nxg, pos(1))
@@ -151,39 +135,27 @@ elseif (edge_flag(2)) then
   call get_cells(pos, cell,edge_flag)
 
 elseif(edge_flag(3)) then
-  print*, 'z behaviour needed!!', edge_flag
   if (cell(3).lt.1) then !hit bottom edge, leave 
-    print*,'bottom of grid...check we exit', cell(3)
     inside=.false.
-    stop
   elseif(cell(3).gt.nzg)then
-    print*,'check TIR/ fresnel?'
-
     call n_interface(ns,1.d0,z_dir,.false.,reflect_flag)
-    print*, 'reflect_flag',reflect_flag
     if (reflect_flag) then
-      print*, 'reflect flag is true; old dir', z_dir, 'old cells', cell
       call reflect(z_dir)
       pos(3)=grid_max(3)-deltas(3)
       call get_cells(pos, cell,edge_flag)
-      print*, 'new dir', z_dir, 'new cells', cell 
-      print*, 'NOW CHECKING CURRENT CELLS thOUHG'
     else 
-      print*, 'Reflect flag is FALSE; check packet LEAVES (new packet next)'
       inside=.false.
     endif 
   else 
     print*,'Error in boundary_behaviour',edge_flag,cell
   endif 
-
  else 
    print*,'Error in boundary_behaviour',edge_flag,cell
 endif 
 
-if (any(edge_flag).and.inside) print*, 'leaving boundary inside and edgeflag what?'
+if (any(edge_flag).and.inside) print*, 'leaving boundary_conds with inside&&edgeflag signalling: STOP' 
 if (any(edge_flag).and.inside) stop
   
-  print*, 'leaving boundary behaviour with inside', inside, 'and edge_flag & cells & pos', edge_flag,cell,pos
 
 end subroutine
 

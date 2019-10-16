@@ -5,6 +5,10 @@ program mcpolar
   !*****Parameter declarations ****************************************
   !input params file will include IN SOME WAY
 
+  !!TO DO 
+  !tidy up these declarations (MUCH MUCH better thn they were!!)
+  !
+
   integer ::  nphotons   !number of photon packets sent into simulation
   real*8 :: diffuse_fraction !diffuse fractions of incident light
   character*30 :: fname_incident_irradiation !filename of incident irradiation 
@@ -87,7 +91,7 @@ call random_seed()
 scatter_count=0
 print*, '**************'
 
-do j=1,10
+do j=1,50000
   if(mod(j,100000).eq.0)then
     print *, j,' scattered photons completed'
   end if
@@ -98,10 +102,8 @@ do j=1,10
 
   if (reflect_flag) CYCLE
   
-
-
   pkt_count=pkt_count+1 !counts actual packets reaching the medium
-  n_phot_wl(b_wl)= n_phot_wl(b_wl) + 1  !add one to wavelength bin
+  n_pkt_wl(b_wl)= n_pkt_wl(b_wl) + 1  !add one to wavelength bin
 
   !obtain all the optical properties for the packet  
   !assumes wavelength won't change 
@@ -123,30 +125,32 @@ do j=1,10
            enddo
            call random_number(ran)
            if(ran.lt.albedo) then
-            print*, 'SCATTER'
+         
+              if(cost.ne.nzp) print*, 'EEEEK cost & nzp are not the same why?????'
               cost=nzp    !i got it right here!!!!
      
               !************Scatter photon into new direction and update Stokes parameters
               call stokes(nxp,nyp,nzp,sint,cost,sinp,cosp,phi,&
                    fi,fq,fu,fv,pl,pc,sc,hgg,g2,pi,twopi)
               scatter_count=scatter_count+1
+
            else
-            print*,'ABSORB ABSORB ABSORB ABSORB'
-              !absorb... bin z position?? 
+      
+              !absorb... bin z position???? IDEA!! 
               EXIT
            endif
            call tauint3(j,inside,b_wl)
         end do
        
      end do ! end loop over nph photons
-     print*, 'youwhatmate', scatter_count, sum(n_phot_wl)
-     stop
+     print*, 'youwhatmate', scatter_count, sum(n_pkt_wl)
      
      print*, 'total number scatterings',scatter_count, 'per packet', real(scatter_count)/real(nphotons)
      !--------------------------------------------------------------------------------
      !     CONVERT PATH LENGTH COUNTER(S) INTO PATH LENGTH ESIMATORS
      print*,'photon count', pkt_count, nphotons, pkt_count/nphotons
-     CALL PL_ESTIMATORS(pkt_count,nphotons,l,tot_irr,incident_spec_irr)
+     CALL PL_ESTIMATORS(pkt_count,incident_spec_irr)
      print*,'Average number of scatterings = ',(scatter_count/nphotons)
+     print*, ' Finished '
 
 endprogram mcpolar

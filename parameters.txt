@@ -2,9 +2,6 @@
 !contains
 
 
-
-
-
 !mcrt
 nphotons = 100000
 

@@ -17,7 +17,7 @@ subroutine iarray
   rhokap=0.
   pl_sum=0.
 
-  n_phot_wl=0
+  n_pkt_wl=0
   l=0.
   lcount=0
 
