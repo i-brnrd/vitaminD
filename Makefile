@@ -25,7 +25,7 @@ objects = constants.o\
 	gridset.o\
 	mc_sample.o\
 	sourceph.o\
-	fresnel.o\
+	n_interface.o\
 	tauint3.o\
 	stokes.o\
 	pl_estimators.o\

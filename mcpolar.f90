@@ -87,17 +87,18 @@ call random_seed()
 scatter_count=0
 print*, '**************'
 
-do j=1,5
+do j=1,10
   if(mod(j,100000).eq.0)then
     print *, j,' scattered photons completed'
   end if
 !*****Release photon from source *******************************
   call sourceph(cdf,diffuse_fraction,b_wl,diffuse_flag)
 
-  if (diffuse_flag) then
-    call fresnel(1.d0,ns,cost,reflect_flag) !fresnel reflection
-    if (reflect_flag) CYCLE
-  endif
+  call n_interface(1.d0,ns,cost,diffuse_flag,reflect_flag) !fresnel reflection
+
+  if (reflect_flag) CYCLE
+  
+
 
   pkt_count=pkt_count+1 !counts actual packets reaching the medium
   n_phot_wl(b_wl)= n_phot_wl(b_wl) + 1  !add one to wavelength bin
@@ -122,6 +123,7 @@ do j=1,5
            enddo
            call random_number(ran)
            if(ran.lt.albedo) then
+            print*, 'SCATTER'
               cost=nzp    !i got it right here!!!!
      
               !************Scatter photon into new direction and update Stokes parameters
@@ -129,6 +131,7 @@ do j=1,5
                    fi,fq,fu,fv,pl,pc,sc,hgg,g2,pi,twopi)
               scatter_count=scatter_count+1
            else
+            print*,'ABSORB ABSORB ABSORB ABSORB'
               !absorb... bin z position?? 
               EXIT
            endif
@@ -136,7 +139,7 @@ do j=1,5
         end do
        
      end do ! end loop over nph photons
-     print*, 'youwhatmate'
+     print*, 'youwhatmate', scatter_count, sum(n_phot_wl)
      stop
      
      print*, 'total number scatterings',scatter_count, 'per packet', real(scatter_count)/real(nphotons)

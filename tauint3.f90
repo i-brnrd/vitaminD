@@ -4,11 +4,11 @@
  contains
 !PUT DELTAS INTo packet, cells too
 !AND i need to sort the fuck out of the 
-!inside being false is outise being false haaha 
+
 subroutine tauint3(j,inside,b_wl)
 use optical_properties_mod, only: nlayer 
 use grid_mod, only: xmax,ymax,zmax,MASK,nxg,nyg,nzg,grid_max
-use packet_mod, only: xp,yp,zp,nxp,nyp,nzp, xcell,ycell,zcell, u_a,u_s
+use packet_mod, only: xp,yp,zp,nxp,nyp,nzp,cost,xcell,ycell,zcell, u_a,u_s
 implicit none
 !INTENTS 
 integer, intent(in) :: j, b_wl
@@ -43,7 +43,7 @@ dir(3)=nzp
 edge_flag=(/.false.,.false.,.false./)
 face_flag=(/.false.,.false.,.false./)
 
-print*,'INSIDE', inside
+print*,'**************************************ENTERINGtauint pkt',j
 
 taurun=0.
 d=0. 
@@ -52,9 +52,9 @@ call random_number(ran)
 tau=-log(ran)
 do
 
-	!find the current cell details, next cell wall and distance to it 
-	call find_next_cell(cell,pos,dir,d_cell,faces,face_flag)
-	!set optical properties for current cell. 
+  !find the current cell details, next cell wall and distance to it 
+  call find_next_cell(cell,pos,dir,d_cell,faces,face_flag)
+  !set optical properties for current cell. 
   !call get_optical_properties() 
   rk_tot=0. 
   u_a_tot=0.
@@ -77,11 +77,13 @@ do
     !then edge_flag should be triggered 
     if (any(edge_flag)) then
       print*, 'EDGE FLAG', edge_flag,'FACE FLAG',face_flag,'CELL', cell 
-      call boundary_behaviour(edge_flag,tau_done,cell,grid_max,pos,inside)
-      print*, 'Boundary behaviour Called^^'
+      call boundary_behaviour(edge_flag,tau_done,cell,grid_max,pos,dir(3),inside)
+      !is the incorrect edge flag being carried over up there? check this....
+      print*, '********Boundary behaviour COMPLETE wiht edgeflag', edge_flag, dir(3)
+
       if (.not.inside) then 
         print*, 'OUTSIDE: left via z....', inside
-      stop
+        EXIT
       endif
     endif
 
@@ -94,7 +96,13 @@ do
     call update_position(tau_done,d_cell,pos,dir,cell,faces,face_flag,edge_flag) !with an exit flag 
     EXIT
   endif 
+  print*, 'continuing on with integration...', dir(3)
 enddo
+
+print*, '**************** leaving tau int; packet', j, 'inside?', inside, 'tau done?', tau_done 
+
+if (inside.and.(.not.tau_done)) print*, 'line 102 tauint3, total disaster'
+if (inside.and.(.not.tau_done)) stop
 
 print*, inside 
 !tau_done  is not the SAME as t_flag
@@ -108,28 +116,31 @@ xcell=cell(1)
 ycell=cell(2)
 zcell=cell(3)
 
+nzp =dir(3)
+cost=nzp
 end subroutine
 end module
 
 
-subroutine boundary_behaviour(edge_flag,tau_done,cell,grid_max,pos,inside)
+subroutine boundary_behaviour(edge_flag,tau_done,cell,grid_max,pos,z_dir,inside)
 use optical_properties_mod, only: nlayer
-use packet_mod, only: cost,nzp,ns
+use packet_mod, only: ns  
 use grid_mod, only: nxg,nyg,nzg,delta,MASK
-use fresnel_mod 
+use n_interface_mod 
 implicit none 
-real*8, intent(inout) :: pos(3)
+real*8, intent(inout) :: pos(3), z_dir 
 real*8,intent(in) :: grid_max(3)
-logical, intent(inout) :: edge_flag(3), tau_done,inside!,reflect_flag
+logical, intent(inout) :: edge_flag(3), tau_done,inside
 real*8 ::deltas(3)
 integer :: cell(3)
 integer :: i,j
 logical :: reflect_flag
-print*, 'IN BOUnDARY CONDItionS'
+
+
+print*, '*******IN BOUnDARY CONDItionS', edge_flag, cell, pos 
 
 deltas=delta
 
-print*, cell, pos 
 
 if (edge_flag(1)) then !reflect boundaries (tbh call...)
   call repeat_bounds(cell(1),deltas(1),grid_max(1),nxg, pos(1))
@@ -144,26 +155,36 @@ elseif(edge_flag(3)) then
   if (cell(3).lt.1) then !hit bottom edge, leave 
     print*,'bottom of grid...check we exit', cell(3)
     inside=.false.
-    print*, 'SHOULD I EXIT OR WHAT '
-   elseif(cell(3).gt.nzg)then
-    print*,'need to do some fresnel!! '
-    print*, 'checking quivalence at this point', cost,nzp 
-  
-     print*,'always reflecting at the surface', ns
-     call fresnel(ns,1.d0,nzp,reflect_flag)
-      print*, 'refelct_flag',reflect_flag
-     if (reflect_flag) then
-      call reflect()
-      print*, 'and checking again', cost, nzp
-     endif 
-    stop 
+    stop
+  elseif(cell(3).gt.nzg)then
+    print*,'check TIR/ fresnel?'
 
+    call n_interface(ns,1.d0,z_dir,.false.,reflect_flag)
+    print*, 'reflect_flag',reflect_flag
+    if (reflect_flag) then
+      print*, 'reflect flag is true; old dir', z_dir, 'old cells', cell
+      call reflect(z_dir)
+      pos(3)=grid_max(3)-deltas(3)
+      call get_cells(pos, cell,edge_flag)
+      print*, 'new dir', z_dir, 'new cells', cell 
+      print*, 'NOW CHECKING CURRENT CELLS thOUHG'
+    else 
+      print*, 'Reflect flag is FALSE; check packet LEAVES (new packet next)'
+      inside=.false.
+    endif 
   else 
     print*,'Error in boundary_behaviour',edge_flag,cell
   endif 
+
  else 
    print*,'Error in boundary_behaviour',edge_flag,cell
 endif 
+
+if (any(edge_flag).and.inside) print*, 'leaving boundary inside and edgeflag what?'
+if (any(edge_flag).and.inside) stop
+  
+  print*, 'leaving boundary behaviour with inside', inside, 'and edge_flag & cells & pos', edge_flag,cell,pos
+
 end subroutine
 
 subroutine repeat_bounds(cell,delta,grid_max,ncell_max,position)
