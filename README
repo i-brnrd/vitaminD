@@ -1,8 +1,2 @@
-All Spectra read oin needa a header line
+All Spectra: require header file 
 
-
-aDDING NEW ARRAYS INTOTHE MODULES? MA make sure youalso initialise them into iarray.90, sset to zero
-
-probably good idea t o pint our the wavelengths
-
-Setting the position of the source irradiance: done in source_photon
