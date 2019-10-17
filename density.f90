@@ -32,6 +32,8 @@ subroutine density(x,y,z,zmax,layer)
 
   ! Epiderman thinkness Jane Sandy Moller ! Sc = 14.8 cellular epidermis= 83.7
 
+
+
   b_sc=zmax-(0.00148)
   b_epi=sine+(zmax-0.00637)
   b_meli=sine+(zmax-0.00737)

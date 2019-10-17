@@ -5,13 +5,13 @@ program mcpolar
   !*****Parameter declarations ****************************************
   !input params file will include IN SOME WAY
 
-  !!TO DO 
+  !!TO DO
   !tidy up these declarations (MUCH MUCH better thn they were!!)
   !
 
   integer ::  nphotons   !number of photon packets sent into simulation
   real*8 :: diffuse_fraction !diffuse fractions of incident light
-  character*30 :: fname_incident_irradiation !filename of incident irradiation 
+  character*30 :: fname_incident_irradiation !filename of incident irradiation
 
   !input params but explicitley filled up by spectra (so like filled up variables)
   real*8 incident_spec_irr(nwl)
@@ -29,7 +29,7 @@ program mcpolar
  ! (loop) indices, counters and seeds &
  integer j  !
  INTEGER I !GET RID OF THIS it needs to be placed into a sub
- !i is used over the layers when it is used 
+ !i is used over the layers when it is used
  !*****! ummmm what now
  real*8 kappa,pl,pc,sc
  integer r_flag
@@ -40,7 +40,7 @@ program mcpolar
  print*,'**********************'
  print*,'Simulation of MC-UVRT through upper layers of skin'
 
- include 'parameters.txt' !MAKE ANOTE OF WHAT THIS INCLUDES !JAQUES VERIFICATION ON OFF TRUE FALSE MAYBE
+ nphotons = 1000000
  diffuse_fraction=1.d0
  fname_incident_irradiation='./spectra/bb_uva.csv'
 
@@ -78,20 +78,19 @@ if (nwl.gt.1) then
   print*,'Diffuse Fraction',diffuse_fraction
 else
   call jacques_verification(diffuse_fraction, tot_irr,l,incident_spec_irr)
-  print*, u_a, u_s, g_all
+
 endif
 
-!INITIALISE RGN 
+!INITIALISE RGN
 call random_seed()
-
 !---------------------------------------------------------------------------------------------------------------
-!MCRT Program 
-!HANGE t-flag 
+!MCRT Program
+!HANGE t-flag
 !---------------------------------------------------------------------------------------------------------------
 scatter_count=0
 print*, '**************'
 
-do j=1,50000
+do j=1,nphotons
   if(mod(j,100000).eq.0)then
     print *, j,' scattered photons completed'
   end if
@@ -101,23 +100,24 @@ do j=1,50000
   call n_interface(1.d0,ns,cost,diffuse_flag,reflect_flag) !fresnel reflection
 
   if (reflect_flag) CYCLE
-  
+
   pkt_count=pkt_count+1 !counts actual packets reaching the medium
   n_pkt_wl(b_wl)= n_pkt_wl(b_wl) + 1  !add one to wavelength bin
 
-  !obtain all the optical properties for the packet  
-  !assumes wavelength won't change 
+  !obtain all the optical properties for the packet
+  !assumes wavelength won't change
 
         u_a=u_a_all(:,b_wl)
         u_s=u_s_all(:,b_wl)
         ns=n_all(b_wl)
         hgg=g_all(b_wl)
+
         g2=hgg**2      ! Henyey-Greenstein parameter, hgg^2
-        inside=.true. !this might be wrong 
+        inside=.true. !this might be wrong
         call tauint3(j,inside,b_wl)
 
-        !********Photon scatters in grid until it exits 
-        !POSITIONALLY DEPENDANT OPTICAL PROPERTY: ablbded 
+        !********Photon scatters in grid until it exits
+        !POSITIONALLY DEPENDANT OPTICAL PROPERTY: ablbded
         do while(inside)
           albedo=0.d0
            do i =1,nlayer
@@ -125,32 +125,32 @@ do j=1,50000
            enddo
            call random_number(ran)
            if(ran.lt.albedo) then
-         
+
               if(cost.ne.nzp) print*, 'EEEEK cost & nzp are not the same why?????'
               cost=nzp    !i got it right here!!!!
-     
+
               !************Scatter photon into new direction and update Stokes parameters
               call stokes(nxp,nyp,nzp,sint,cost,sinp,cosp,phi,&
                    fi,fq,fu,fv,pl,pc,sc,hgg,g2,pi,twopi)
               scatter_count=scatter_count+1
 
            else
-      
-              !absorb... bin z position???? IDEA!! 
+
+              !absorb... bin z position???? 1IDEA!!
               EXIT
            endif
            call tauint3(j,inside,b_wl)
         end do
-       
+
      end do ! end loop over nph photons
      print*, 'youwhatmate', scatter_count, sum(n_pkt_wl)
-     
+
      print*, 'total number scatterings',scatter_count, 'per packet', real(scatter_count)/real(nphotons)
      !--------------------------------------------------------------------------------
      !     CONVERT PATH LENGTH COUNTER(S) INTO PATH LENGTH ESIMATORS
      print*,'photon count', pkt_count, nphotons, pkt_count/nphotons
      CALL PL_ESTIMATORS(pkt_count,incident_spec_irr)
-     print*,'Average number of scatterings = ',(scatter_count/nphotons)
+     print*,'Average number of scatterings = ',(real(scatter_count)/real(nphotons))
      print*, ' Finished '
 
 endprogram mcpolar

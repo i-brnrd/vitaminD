@@ -3,7 +3,7 @@ module grid_mod
   implicit none
   save
   !contains
-  integer, parameter :: nxg=50,nyg=50,nzg=400
+  integer, parameter :: nxg=200,nyg=200,nzg=200
 
   real*8 :: xface(-3:nxg+4),yface(-3:nyg+4),zface(-3:nzg+4)
   real*8 :: MASK(nxg,nyg,nzg,nlayer)
@@ -11,7 +11,7 @@ module grid_mod
 
   REAL*8 :: PL_SUM(nwl,NXG,NYG,NZG)
 
-  real*8 :: xmax,ymax,zmax
+  real*8,parameter :: xmax=1.d0,ymax=1.d0,zmax=1.d0
   real*8 :: grid_max(3)
   real*8 :: delta
 

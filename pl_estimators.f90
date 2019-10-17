@@ -5,9 +5,10 @@ contains
 
 
 !what I want from this module
-!obviously a hugmungoes tidy 
+!obviously a hugmungoes tidy
 ! I want OPTION to write out full pl_ grid of wls.
 
+!ando ok - idea here; yes can write out the integrated depth plot too just as an itional checker
 !--------------------------------------------------------------------------------
   SUBROUTINE PL_ESTIMATORS(pkt_count,incident_spec_irr)
     use optical_properties_mod, only: n_pkt_wl, l, nwl
@@ -18,15 +19,15 @@ contains
     integer, intent(in) :: pkt_count
     real*8, intent(in) :: incident_spec_irr(nwl)
 
-    real*8 :: Area 
+    real*8 :: Area
 
-    !unnecessary 
+    !unnecessary
     real*8 :: wls(nwl)
     real*8 :: lumin(nwl)
 
     real*8 :: V
     real*8, dimension(nxg,nyg,nzg) :: j_mean
-    real*8 :: l_norm, l_sum 
+    real*8 :: l_norm, l_sum
     integer :: i,j,k,m
     real*8 :: depth_val(nzg)
 
@@ -35,7 +36,7 @@ contains
     print*, nxg,nyg,nzg
 
 
-    wls=l 
+    wls=l
     lumin=incident_spec_irr
 
     l_sum=sum(incident_spec_irr)
@@ -76,8 +77,8 @@ contains
         enddo
       enddo
       depth_val(k)=depth_val(k)/(nxg*nyg)
-      write(10,*) (real(nzg-k)*(2.d0*zmax/real(nzg)))/(1.E-4), depth_val(k)/L_sum
-      print*, (real(nzg-k)*(2.d0*zmax/real(nzg)))/(1.E-4), depth_val(k)/L_sum
+      write(10,*) (real(nzg-k)*(2.d0*zmax/real(nzg))), depth_val(k)/L_sum
+    !print*, (real(nzg-k)*(2.d0*zmax/real(nzg))), depth_val(k)/L_sum
     enddo
 
     close(10)

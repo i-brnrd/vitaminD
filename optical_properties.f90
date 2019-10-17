@@ -3,7 +3,7 @@ module optical_properties_mod
   save
   !contains
   real*8, parameter :: wl_start=280.d0
-  integer, parameter :: nwl=121 !121 uv wavelengths 
+  integer, parameter :: nwl=1!21 !121 uv wavelengths 
   integer, parameter :: nlayer=5
 
   real*8  :: l(nwl)
