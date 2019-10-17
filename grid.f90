@@ -11,6 +11,8 @@ module grid_mod
 
   REAL*8 :: PL_SUM(nwl,NXG,NYG,NZG)
 
+  real*8 :: xmax,ymax,zmax
+  real*8 :: grid_max(3)
   real*8 :: delta
 
 end module grid_mod

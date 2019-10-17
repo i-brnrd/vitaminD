@@ -8,7 +8,8 @@
 #	#gfortran hello_isla.f90
 #FFLAGS = -ffpe-trap=invalid,zero -g -fcheck=all -fbacktrace
 
-objects = optical_properties.o\
+objects = constants.o\
+	optical_properties.o\
 	packet.o\
 	grid.o\
 	search_bisec.o\
@@ -17,14 +18,15 @@ objects = optical_properties.o\
 	interpolate.o\
 	load_spec2.o\
 	get_cdf.o\
-	optical_properties_set.o\
+	optical_properties_init.o\
+	jacques_verification.o\
 	iarray.o\
 	density.o\
 	gridset.o\
 	mc_sample.o\
 	sourceph.o\
-	reflect.o\
-	tauint2.o\
+	n_interface.o\
+	tauint3.o\
 	stokes.o\
 	pl_estimators.o\
 	mcpolar.o

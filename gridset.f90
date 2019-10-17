@@ -4,13 +4,13 @@ module gridset_mod
 contains
 
 
-  subroutine gridset(xmax,ymax,zmax,kappa)!(xface,yface,zface,MASK,xmax,ymax,zmax,kappa)
+  subroutine gridset(kappa)!(xface,yface,zface,MASK,xmax,ymax,zmax,kappa)
     use optical_properties_mod
-    use grid_mod
+    use grid_mod, ONLY: nxg,nyg,nzg,xface,yface,zface,MASK,xmax,ymax,zmax,delta,grid_max
 
     implicit none
 
-    real*8 xmax,ymax,zmax,kappa
+    real*8 kappa
     real*8 x,y,z,rho,taueq,taupole
 
     integer i,j,k,p,layer
@@ -20,16 +20,25 @@ contains
 
     print *, 'Setting up density grid....'
 
+    !**********  Linear Cartesian grid. Set up grid faces.. ****************
+    !do i=1,nxg+1
+      do i=-3,nxg+4
+       xface(i)=(i-1)*2.d0*xmax/nxg
+    end do
+    !do i=1,nyg+1
+      do i=-3,nyg+4
+       yface(i)=(i-1)*2.d0*ymax/nyg
+    end do
+    !do i=1,nzg+1
+      do i=-3,nzg+4
+       zface(i)=(i-1)*2.d0*zmax/nzg
+    end do
+    !FIX xmax, ymax,ymas to be exactlt the same as relevaent face... 
+    grid_max(1)=xface(nxg+1)
+    grid_max(2)=yface(nyg+1)
+    grid_max(3)=zface(nzg+1)
+
     !**********  Linear Cartesian grid. Set up grid faces ****************
-    do i=1,nxg+1
-       xface(i)=(i-1)*2.*xmax/nxg
-    end do
-    do i=1,nyg+1
-       yface(i)=(i-1)*2.*ymax/nyg
-    end do
-    do i=1,nzg+1
-       zface(i)=(i-1)*2.*zmax/nzg
-    end do
 
     !**************  Loop through x, y, and z to set up grid density.  ****
     do i=1,nxg
@@ -55,43 +64,6 @@ contains
        end do
     end do
 
-
-
-!!$
-!!$
-!!$****************** Calculate equatorial and polar optical depths ****
-!!$      taueq=0.
-!!$      taupole=0.
-!!$     do i=1,nxg
-!!$         taueq=taueq+rhokap(i,nyg/2,nzg/2)
-!!$      enddo
-!!$      do i=1,nzg
-!!$        taupole=taupole+rhokap(nxg/2,nyg/2,i)
-!!$      enddo
-!!$      taueq=taueq*2.*xmax/nxg
-!!$      taupole=taupole*2.*zmax/nzg
-!!$      print *,'taueq = ',taueq,'  taupole = ',taupole
-!!$
-!!$      ************** Write out density grid as unformatted array
-!!$      open(10,file='density.dat',status='unknown',form='unformatted')
-!!$           write(10) rhokap
-!!$      close(10)
-!!$
-!!$     open(10,file='density_slice.dat',status='unknown')
-!!$      do k=1,4
-!!$     do i=1,nxg
-!!$       write(10,*) (rhokap(i,j,101,k), j=1,nyg)
-!!$     end do
-!!$     enddo
-!!$
-!!$      do i=1,nxg
-!!$       do j=1,nyg
-!!$           x=xface(i)-xmax+xmax/nxg
-!!$           y=yface(j)-ymax+ymax/nyg
-!!$         write(10,*) x,y,rhokap(i,j,101)
-!!$
-!!$       end do
-!!$      end do
 
     return
   end subroutine gridset
