@@ -47,7 +47,7 @@ contains
 
     print*,'Area',Area, ' in cm**2'
     !L=L/(100.d0*100.d0) !W/cm
-    !print*,'Luminosity',L,'W/m^2'
+    !gprint*,'Luminosity',L,'W/m^2'
     print*,'Volume of Voxel',v
     print*, 'cells', nxg,nyg,nzg
 
