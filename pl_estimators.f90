@@ -33,6 +33,10 @@ contains
 
 
 
+    real*8 :: answer
+
+
+
     print*, nxg,nyg,nzg
 
 
@@ -65,6 +69,62 @@ contains
       enddo
     enddo
 
+!I would like to write out a dataset that is pl_sum* l_norm for each wavelength i think; lets try it
+!And then it would be tis dataset I interrogate and load up and do stuff with
+!two options: one is write aout a humongously long file.
+!another: qrite out the unformattted array BUT each pl_sum entry has already been normed
+!lets try that one
+
+!   do i=1,nxg
+!     do j=1,nyg
+!       do k=1,nzg
+!         do m=1,nwl
+!           l_norm=lumin(m)*area/(real(n_pkt_wl(m))*v)
+!           if (n_pkt_wl(m).eq.0) then
+!             answer=0.d0
+!           else
+!             answer=(PL_SUM(m,i,j,k))*l_norm
+!           write()
+!
+!         j_mean(i,j,k)=j_mean(i,j,k) + (PL_SUM(m,i,j,k))*l_norm
+!       enddo
+!     enddo
+!   enddo
+! enddo
+
+    j_mean=0.d0
+    do m=1,nwl
+      if (n_pkt_wl(m).eq.0) cycle
+      l_norm=lumin(m)*area/(real(n_pkt_wl(m))*v)
+      do i=1,nxg
+        do j=1,nyg
+          do k=1,nzg
+            j_mean(i,j,k)=j_mean(i,j,k) + (PL_SUM(m,i,j,k))*l_norm
+          enddo
+        enddo
+      enddo
+    enddo
+
+
+
+
+      do m=1,nwl
+        if (n_pkt_wl(m).eq.0) then
+          PL_SUM(m,i,j,k)=0.d0
+        else
+          l_norm=lumin(m)*area/(real(n_pkt_wl(m))*v)
+          PL_SUM(m,:,:,:)=l_norm*PL_SUM(m,:,:,:)
+        endif
+      enddo
+
+      print*, '...ABOUT TO WRITE TO THE UFORMATTED ARRAY......'
+      open(10,file='./pathlengths.dat',status='replace',form='unformatted')
+        write(10) PL_SUM
+      close(10)
+      print*, 'written it out!!!!'
+
+
+    !I would still like to do this.....
     ! print out values at each depth
     open(10,file='./plots/depths.dat',status='replace')
 
