@@ -11,7 +11,7 @@ program mcpolar
 
   integer ::  nphotons   !number of photon packets sent into simulation
   real*8 :: diffuse_fraction !diffuse fractions of incident light
-  character*30 :: fname_incident_irradiation !filename of incident irradiation
+  character*70 :: fname_incident_irradiation !filename of incident irradiation
 
   !input params but explicitley filled up by spectra (so like filled up variables)
   real*8 incident_spec_irr(nwl)

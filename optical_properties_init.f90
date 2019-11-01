@@ -16,7 +16,7 @@ contains
     integer :: i_wl, layer
     real*8 :: jaques_basal
 
-    character*30 :: filename
+    character*70 :: filename
     real*8 lg10
     real*8 :: V_m, v_m_epi   ! boake
     real*8 n_mel !'how many' cells

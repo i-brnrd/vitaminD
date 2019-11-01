@@ -105,17 +105,51 @@ contains
       enddo
     enddo
 
+    open(10,file='./plots/depths1.dat',status='replace')
+
+    depth_val=0.0d0
+    do k=1,nzg
+      do j=1,nyg
+        do i=1,nxg
+          !print*, PL_SUM(1,i,j,k)
+          depth_val(k)= depth_val(k) + j_mean(i,j,k)
+        enddo
+      enddo
+      depth_val(k)=depth_val(k)/(nxg*nyg)
+      write(10,*) (real(nzg-k)*(2.d0*zmax/real(nzg))), depth_val(k)/L_sum
+    !print*, (real(nzg-k)*(2.d0*zmax/real(nzg))), depth_val(k)/L_sum
+    enddo
+
+    close(10)
 
 
 
       do m=1,nwl
         if (n_pkt_wl(m).eq.0) then
-          PL_SUM(m,i,j,k)=0.d0
+          PL_SUM(m,:,:,:)=0.d0
         else
           l_norm=lumin(m)*area/(real(n_pkt_wl(m))*v)
           PL_SUM(m,:,:,:)=l_norm*PL_SUM(m,:,:,:)
         endif
       enddo
+
+
+
+          j_mean=0.d0
+          do m=1,nwl
+            if (n_pkt_wl(m).eq.0) cycle
+            do i=1,nxg
+              do j=1,nyg
+                do k=1,nzg
+                  j_mean(i,j,k)=j_mean(i,j,k) + (PL_SUM(m,i,j,k))
+                enddo
+              enddo
+            enddo
+          enddo
+
+
+
+
 
       print*, '...ABOUT TO WRITE TO THE UFORMATTED ARRAY......'
       open(10,file='./pathlengths.dat',status='replace',form='unformatted')
@@ -126,7 +160,7 @@ contains
 
     !I would still like to do this.....
     ! print out values at each depth
-    open(10,file='./plots/depths.dat',status='replace')
+    open(10,file='./plots/depths2.dat',status='replace')
 
     depth_val=0.0d0
     do k=1,nzg

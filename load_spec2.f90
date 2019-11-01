@@ -16,7 +16,7 @@ module load_spec2_mod
       !-------------------------------------------------------------------
       implicit none
 
-      character*30, intent(in):: filename
+      character*70, intent(in):: filename
       real*8, intent(in):: unit_to_cm
       integer :: length
       real*8, allocatable ::raw_data(:,:)
@@ -25,7 +25,7 @@ module load_spec2_mod
       real*8 :: interpol
       integer :: i
 
-    
+
       !load in the raw data from the file
       call get_dim(filename,length)
       allocate(raw_data(2,length))

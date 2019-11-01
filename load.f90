@@ -5,11 +5,11 @@ contains
 
   subroutine load(fname,sz,spectrum)
     !--------------------------------------------------------------------
-    ! loads a spectrum 
+    ! loads a spectrum
     !-------------------------------------------------------------------
 
     implicit none
-    character*25, intent(in):: fname
+    character*70, intent(in):: fname
     integer, intent(in)::sz
     real*8, intent(inout)::spectrum(2,sz)
 
@@ -29,10 +29,8 @@ contains
     enddo
     close(8)
 
-    return 
+    return
   end subroutine load
 
 
 end module load_mod
-
-      

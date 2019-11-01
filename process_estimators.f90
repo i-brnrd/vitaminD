@@ -2,6 +2,9 @@ program process_estimators
 use optical_properties_mod, only: nwl
 use grid_mod, only: nxg,nyg,nzg, PL_SUM,zmax
 use constants_mod
+use vit_d_properties_mod
+use vit_d_properties_init_mod
+
 implicit none
 real*8, dimension(nxg,nyg,nzg) :: j_mean
 integer :: i,j,k,m
@@ -9,11 +12,16 @@ real*8 :: depth_val(nzg)
 
 
 
-
-print*, 'hello world'
-
 PL_SUM=0.d0
 
+
+
+call vit_d_properties_init()
+
+
+stop
+
+!read in the pathlengths file
 
     open(10, file='pathlengths.dat',status='unknown',form='unformatted')
      read(10) PL_SUM

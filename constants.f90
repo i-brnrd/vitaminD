@@ -6,5 +6,8 @@ module constants_mod
   real*8, parameter:: twopi=2.*pi
   real*8, parameter:: fourpi=4.*pi
 
- ! hc=(6.626*10.**(-34))*(3.*10.**8) !SI units
+  real*8, parameter :: h=6.626D-34 !Planck
+  real*8, parameter :: c=3.D+8      !Speed of light
+  real*8, parameter :: Na=6.022D+23  !Avogadro
+
 end module constants_mod
