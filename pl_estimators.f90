@@ -24,27 +24,18 @@ contains
     !unnecessary
     real*8 :: wls(nwl)
     real*8 :: lumin(nwl)
-
     real*8 :: V
     real*8, dimension(nxg,nyg,nzg) :: j_mean
     real*8 :: l_norm, l_sum
     integer :: i,j,k,m
     real*8 :: depth_val(nzg)
-
-
-
-    real*8 :: answer
-
-
+    real*8 :: picture_depths(nwl,nzg)
 
     print*, nxg,nyg,nzg
 
-
     wls=l
     lumin=incident_spec_irr
-
     l_sum=sum(incident_spec_irr)
-
     print*, '****'
     !print*, lumin
     Area=(2.d0*(xmax))*(2.d0*(ymax))
@@ -69,44 +60,7 @@ contains
       enddo
     enddo
 
-!I would like to write out a dataset that is pl_sum* l_norm for each wavelength i think; lets try it
-!And then it would be tis dataset I interrogate and load up and do stuff with
-!two options: one is write aout a humongously long file.
-!another: qrite out the unformattted array BUT each pl_sum entry has already been normed
-!lets try that one
-
-!   do i=1,nxg
-!     do j=1,nyg
-!       do k=1,nzg
-!         do m=1,nwl
-!           l_norm=lumin(m)*area/(real(n_pkt_wl(m))*v)
-!           if (n_pkt_wl(m).eq.0) then
-!             answer=0.d0
-!           else
-!             answer=(PL_SUM(m,i,j,k))*l_norm
-!           write()
-!
-!         j_mean(i,j,k)=j_mean(i,j,k) + (PL_SUM(m,i,j,k))*l_norm
-!       enddo
-!     enddo
-!   enddo
-! enddo
-
-    j_mean=0.d0
-    do m=1,nwl
-      if (n_pkt_wl(m).eq.0) cycle
-      l_norm=lumin(m)*area/(real(n_pkt_wl(m))*v)
-      do i=1,nxg
-        do j=1,nyg
-          do k=1,nzg
-            j_mean(i,j,k)=j_mean(i,j,k) + (PL_SUM(m,i,j,k))*l_norm
-          enddo
-        enddo
-      enddo
-    enddo
-
     open(10,file='./plots/depths1.dat',status='replace')
-
     depth_val=0.0d0
     do k=1,nzg
       do j=1,nyg
@@ -119,43 +73,39 @@ contains
       write(10,*) (real(nzg-k)*(2.d0*zmax/real(nzg))), depth_val(k)/L_sum
     !print*, (real(nzg-k)*(2.d0*zmax/real(nzg))), depth_val(k)/L_sum
     enddo
-
     close(10)
 
+    do m=1,nwl
+      if (n_pkt_wl(m).eq.0) then
+        PL_SUM(m,:,:,:)=0.d0
+      else
+        l_norm=lumin(m)*area/(real(n_pkt_wl(m))*v)
+        PL_SUM(m,:,:,:)=l_norm*PL_SUM(m,:,:,:)
+      endif
+    enddo
 
 
-      do m=1,nwl
-        if (n_pkt_wl(m).eq.0) then
-          PL_SUM(m,:,:,:)=0.d0
-        else
-          l_norm=lumin(m)*area/(real(n_pkt_wl(m))*v)
-          PL_SUM(m,:,:,:)=l_norm*PL_SUM(m,:,:,:)
-        endif
-      enddo
-
-
-
-          j_mean=0.d0
+    picture_depths=0.d0
+    do k=1,nzg
+      do j=1,nyg
+        do i=1,nxg
           do m=1,nwl
-            if (n_pkt_wl(m).eq.0) cycle
-            do i=1,nxg
-              do j=1,nyg
-                do k=1,nzg
-                  j_mean(i,j,k)=j_mean(i,j,k) + (PL_SUM(m,i,j,k))
-                enddo
-              enddo
-            enddo
+          picture_depths(m,k)= picture_depths(m,k) + PL_SUM(m,i,j,k)
           enddo
+        enddo
+      enddo
+      picture_depths(:,k)=picture_depths(:,k)/(nxg*nyg)
+      write(11,*) (real(nzg-k)*(2.d0*zmax/real(nzg))), depth_val(k)/L_sum
+    enddo
 
+    print*, '...ABOUT TO WRITE TO THE PICTURE FILE'
+    open(10,file='./wavelengths_depths.dat',status='replace')
+    do k=1,NZG
+      write(10,*)  picture_depths(:,k)
+    enddo
+    close(10)
+    print*, 'written it out!!!!'
 
-
-
-
-      print*, '...ABOUT TO WRITE TO THE UFORMATTED ARRAY......'
-      open(10,file='./pathlengths.dat',status='replace',form='unformatted')
-        write(10) PL_SUM
-      close(10)
-      print*, 'written it out!!!!'
 
 
     !I would still like to do this.....
