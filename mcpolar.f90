@@ -40,9 +40,9 @@ program mcpolar
  print*,'**********************'
  print*,'Simulation of MC-UVRT through upper layers of skin'
 
- nphotons = 1000000
+ nphotons = 1000000000
  diffuse_fraction=1.d0
- fname_incident_irradiation='./spectra/bb_uva.csv'
+ fname_incident_irradiation='./spectra/solar_spec.txt'
 
  print*, 'model size(cm)', xmax,ymax,zmax
  print*, 'sim in',nlayer, ' layers'
@@ -71,9 +71,16 @@ if (nwl.gt.1) then
   enddo
   call optical_properties_init()
   call load_spec2(fname_incident_irradiation,incident_spec_irr,1.d0)
+  !incident_spec_irr=1.d0
   call get_cdf(cdf,l,incident_spec_irr,nwl)
+  open(8,file='incident.txt',status='unknown')
+  do i=1,nwl
+    write(8,*)   l(i), incident_spec_irr(i)
+  enddo
+  stop
+
   tot_irr=sum(incident_spec_irr)
-  print*,'Incident spectral irradiance loaded from ', fname_incident_irradiation
+  print*,'Incident spectral irradiance loaded from NOWHERE', fname_incident_irradiation
   print*,'Total irradiance:',tot_irr
   print*,'Diffuse Fraction',diffuse_fraction
 else

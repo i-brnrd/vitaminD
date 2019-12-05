@@ -36,7 +36,7 @@ contains
     wls=l
     lumin=incident_spec_irr
     l_sum=sum(incident_spec_irr)
-    print*, '****'
+    print*, '****WARNING THERE IS SOMETHING HORRIBLY WRONG WARNINGS'
     !print*, lumin
     Area=(2.d0*(xmax))*(2.d0*(ymax))
     V= (2.d0*(XMAX/NXG))*(2.d0*(YMAX/NYG))*(2.d0*(ZMAX/NZG))
@@ -98,11 +98,11 @@ contains
       write(11,*) (real(nzg-k)*(2.d0*zmax/real(nzg))), depth_val(k)/L_sum
     enddo
 
-    print*, '...ABOUT TO WRITE TO THE PICTURE FILE'
-    open(10,file='./wavelengths_depths.dat',status='replace')
-    do k=1,NZG
-      write(10,*)  picture_depths(:,k)
-    enddo
+    print*, '...ABOUT TO WRITE TO THE PL FILE'
+    open(10,file='./pathlengths.dat',status='replace',form='unformatted')
+
+      write(10)  PL_SUM
+
     close(10)
     print*, 'written it out!!!!'
 
